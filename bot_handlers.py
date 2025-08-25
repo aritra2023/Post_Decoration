@@ -285,6 +285,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     has_photo = update.message.photo is not None
     photo_file_id = update.message.photo[-1].file_id if has_photo and update.message.photo else None
     
+    # Default image URL for text-only messages
+    default_image_url = "https://files.catbox.moe/9i18yn.jpg"
+    
     logging.info(f"Message text: {message_text}")
     logging.info(f"Has photo: {has_photo}")
     
@@ -354,7 +357,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode='HTML'
             )
         else:
-            await update.message.reply_text(formatted_message, parse_mode='HTML')
+            # For text messages, send with default image
+            await update.message.reply_photo(
+                photo=default_image_url,
+                caption=formatted_message,
+                parse_mode='HTML'
+            )
         return
     
     success_count = 0
@@ -369,7 +377,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode='HTML'
             )
         else:
-            await update.message.reply_text(f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}", parse_mode='HTML')
+            # For text messages, show preview with default image
+            await update.message.reply_photo(
+                photo=default_image_url,
+                caption=f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}",
+                parse_mode='HTML'
+            )
     except Exception as e:
         logging.error(f"Failed to send preview to user: {e}")
     
@@ -383,9 +396,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode='HTML'
                 )
             else:
-                await context.bot.send_message(
+                # For text messages, send with default image
+                await context.bot.send_photo(
                     chat_id=channel_id,
-                    text=formatted_message,
+                    photo=default_image_url,
+                    caption=formatted_message,
                     parse_mode='HTML'
                 )
             success_count += 1
