@@ -466,11 +466,28 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await query.edit_message_text(
-            "📢 <b>Channel Management</b>\n\nChoose an option:",
-            parse_mode='HTML',
-            reply_markup=reply_markup
-        )
+        # Delete the original message and send a new one
+        try:
+            await query.message.delete()
+            await query.message.reply_text(
+                "📢 <b>Channel Management</b>\n\nChoose an option:",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception as e:
+            # Fallback: try to edit if possible
+            try:
+                await query.edit_message_text(
+                    "📢 <b>Channel Management</b>\n\nChoose an option:",
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            except Exception:
+                await query.message.reply_text(
+                    "📢 <b>Channel Management</b>\n\nChoose an option:",
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
     
     elif data == "show_all_channels" and is_admin(user_id):
         channels = db.get_channels(active_only=False)
@@ -522,6 +539,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(f"❌ {message}")
     
     elif data == "back_to_main":
+        # Delete current message and send new start message
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+        # Create a fake update for start command
         await start_command(update, context)
 
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
