@@ -459,26 +459,55 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "manage_channels" and is_admin(user_id):
+        keyboard = [
+            [InlineKeyboardButton("📋 All Channels", callback_data="show_all_channels")],
+            [InlineKeyboardButton("➕ Add Channel", callback_data="add_channel"), InlineKeyboardButton("➖ Remove Channel", callback_data="remove_channel")],
+            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(
+            "📢 <b>Channel Management</b>\n\nChoose an option:",
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
+    
+    elif data == "show_all_channels" and is_admin(user_id):
         channels = db.get_channels(active_only=False)
         
         if not channels:
-            await query.edit_message_text("📭 No channels configured.\n\nUse /addchannel to add channels.")
+            await query.edit_message_text(
+                "📭 <b>No channels configured</b>\n\nUse Add Channel option to add channels.",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+            )
             return
         
-        channel_text = "📢 <b>Channel Management</b>\n\nConfigured channels:\n\n"
-        keyboard = []
-        
+        channel_text = "📢 <b>All Channels</b>\n\nConfigured channels:\n\n"
         for i, channel in enumerate(channels, 1):
-            channel_text += f"{i}. `{channel}`\n"
-            keyboard.append([InlineKeyboardButton(f"Toggle {channel}", callback_data=f"toggle_{channel}")])
+            channel_text += f"{i}. <code>{channel}</code>\n"
         
-        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="back_to_main")])
+        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await query.edit_message_text(
             channel_text,
             parse_mode='HTML',
             reply_markup=reply_markup
+        )
+    
+    elif data == "add_channel" and is_admin(user_id):
+        await query.edit_message_text(
+            "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_username</code> or <code>/addchannel -100xxxxxxxxx</code>\n\nExample:\n<code>/addchannel @mychannel</code>",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+        )
+    
+    elif data == "remove_channel" and is_admin(user_id):
+        await query.edit_message_text(
+            "➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel @channel_username</code> or <code>/removechannel -100xxxxxxxxx</code>\n\nExample:\n<code>/removechannel @mychannel</code>",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
         )
     
     elif data and data.startswith("toggle_") and is_admin(user_id):
