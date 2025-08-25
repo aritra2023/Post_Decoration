@@ -1,0 +1,42 @@
+Mujhe ek Telegram bot ka complete Python code banao jo Replit pe smoothly run ho.  
+Requirements:  
+
+1. Bot Library:
+   - python-telegram-bot (latest stable)
+   - MongoDB storage (for formats & channel IDs)
+
+2. Features:
+   - `/start` → normal welcome message with button (menu style UI).
+   - `/addchannel <channel_id>` (admin only) → channel MongoDB me save ho jaye (multiple channels support, public & private dono).
+   - `/removechannel <channel_id>` (admin only) → channel MongoDB se delete ho jaye.
+   - `/listchannels` (admin only) → currently saved channels list dikhao.
+
+   - `/format` → admin ko ek format set karne do.  
+     Example: "📌 Title: {title}\n💰 Price: {price}\n🔗 Link: {link}"  
+     Ye format MongoDB me save ho jaye.
+   - Jab bhi admin koi post bheje (text ya image + caption), wo saved format ke hisaab se auto-apply ho aur sabhi saved channels me publish ho jaye.
+
+   - Bot automatically hamesha **last saved format** apply kare.
+   - Agar user naya format save kare, wo overwrite ho jaye aur aage ke sab posts me wahi apply ho.
+
+3. Special:
+   - Private channels ke liye bhi kaam kare (bot ko channel me add karna hoga).
+   - `/settings` (admin only) → menu show ho jisme:
+     - Change start message
+     - Change format
+     - Select channels for posting (toggle ON/OFF from saved list)
+
+4. Database (MongoDB):
+   - Collection: `channels` → channel_id list
+   - Collection: `formats` → current format string
+   - Collection: `settings` → start message etc.
+
+5. Deployment:
+   - Code Replit compatible ho (with `keep_alive()` flask server + uptime ping).
+   - `.env` file ka use karke `BOT_TOKEN` aur `MONGO_URI` rakhe.
+
+6. Security:
+   - Sirf admin (ID hardcoded in code ya env me) hi `/format`, `/addchannel`, `/settings` use kar sake.
+   - Normal users sirf `/start` dekh sake aur agar koi public feature ho to wo use kar sake.
+
+Please pura production-ready clean code likho jo Replit pe copy-paste karke turant run ho jaye. 
