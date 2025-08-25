@@ -465,11 +465,28 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await query.edit_message_text(
-            "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
-            parse_mode='HTML',
-            reply_markup=reply_markup
-        )
+        try:
+            await query.edit_message_text(
+                "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception:
+            # If it's a photo message, edit the caption instead
+            try:
+                await query.edit_message_caption(
+                    caption="⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            except Exception:
+                # Fallback: send new message if editing fails
+                if query.message and hasattr(query.message, 'reply_text'):
+                    await query.message.reply_text(
+                        "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                        parse_mode='HTML',
+                        reply_markup=reply_markup
+                    )
     
     elif data == "manage_channels" and is_admin(user_id):
         keyboard = [
@@ -596,11 +613,28 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await query.edit_message_text(
-            f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
-            parse_mode='HTML',
-            reply_markup=reply_markup
-        )
+        try:
+            await query.edit_message_text(
+                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception:
+            # If it's a photo message, edit the caption instead
+            try:
+                await query.edit_message_caption(
+                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            except Exception:
+                # Fallback: send new message if editing fails
+                if query.message and hasattr(query.message, 'reply_text'):
+                    await query.message.reply_text(
+                        f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                        parse_mode='HTML',
+                        reply_markup=reply_markup
+                    )
     
     elif data == "toggle_schedule_timer" and is_admin(user_id):
         success, message = db.toggle_schedule_timer()
