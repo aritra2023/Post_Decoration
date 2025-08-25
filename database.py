@@ -141,5 +141,80 @@ class Database:
             logging.error(f"Error getting start message: {e}")
             return DEFAULT_START_MESSAGE
 
+    def toggle_auto_forward(self):
+        """Toggle auto forward setting"""
+        try:
+            setting_doc = self.settings.find_one({"type": "auto_forward"})
+            current_status = setting_doc["enabled"] if setting_doc else True
+            new_status = not current_status
+            
+            self.settings.update_one(
+                {"type": "auto_forward"},
+                {"$set": {"enabled": new_status}},
+                upsert=True
+            )
+            status_text = "enabled" if new_status else "disabled"
+            return True, f"Auto forward {status_text}"
+        except Exception as e:
+            logging.error(f"Error toggling auto forward: {e}")
+            return False, f"Error: {e}"
+
+    def get_auto_forward_status(self):
+        """Get auto forward status"""
+        try:
+            setting_doc = self.settings.find_one({"type": "auto_forward"})
+            if setting_doc:
+                return setting_doc.get("enabled", True)
+            return True  # Default enabled
+        except Exception as e:
+            logging.error(f"Error getting auto forward status: {e}")
+            return True
+
+    def set_schedule_timer(self, hours, minutes):
+        """Set schedule timer"""
+        try:
+            self.settings.update_one(
+                {"type": "schedule_timer"},
+                {"$set": {"hours": hours, "minutes": minutes, "enabled": True}},
+                upsert=True
+            )
+            return True, f"Schedule timer set for {hours:02d}:{minutes:02d}"
+        except Exception as e:
+            logging.error(f"Error setting schedule timer: {e}")
+            return False, f"Error: {e}"
+
+    def get_schedule_timer(self):
+        """Get schedule timer settings"""
+        try:
+            setting_doc = self.settings.find_one({"type": "schedule_timer"})
+            if setting_doc:
+                return {
+                    "hours": setting_doc.get("hours", 0),
+                    "minutes": setting_doc.get("minutes", 0),
+                    "enabled": setting_doc.get("enabled", False)
+                }
+            return {"hours": 0, "minutes": 0, "enabled": False}
+        except Exception as e:
+            logging.error(f"Error getting schedule timer: {e}")
+            return {"hours": 0, "minutes": 0, "enabled": False}
+
+    def toggle_schedule_timer(self):
+        """Toggle schedule timer enabled/disabled"""
+        try:
+            setting_doc = self.settings.find_one({"type": "schedule_timer"})
+            current_status = setting_doc["enabled"] if setting_doc else False
+            new_status = not current_status
+            
+            self.settings.update_one(
+                {"type": "schedule_timer"},
+                {"$set": {"enabled": new_status}},
+                upsert=True
+            )
+            status_text = "enabled" if new_status else "disabled"
+            return True, f"Schedule timer {status_text}"
+        except Exception as e:
+            logging.error(f"Error toggling schedule timer: {e}")
+            return False, f"Error: {e}"
+
 # Global database instance
 db = Database()
