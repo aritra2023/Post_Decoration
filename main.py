@@ -27,6 +27,11 @@ def main():
         # Start keep alive server
         keep_alive()
         
+        # Validate bot token
+        if not BOT_TOKEN:
+            logger.error("BOT_TOKEN environment variable is required")
+            sys.exit(1)
+            
         # Create application
         application = Application.builder().token(BOT_TOKEN).build()
         

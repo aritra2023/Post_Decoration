@@ -105,6 +105,8 @@ def format_movie_links(message_text, urls):
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
     try:
+        if not update.effective_user or not update.message:
+            return
         user_id = update.effective_user.id
         start_message = db.get_start_message()
         
@@ -125,17 +127,22 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await update.message.reply_text(
-            start_message,
-            parse_mode='Markdown',
-            reply_markup=reply_markup
-        )
+        if update.message:
+            await update.message.reply_text(
+                start_message,
+                parse_mode='Markdown',
+                reply_markup=reply_markup
+            )
     except Exception as e:
         logging.error(f"Error in start command: {e}")
-        await update.message.reply_text("An error occurred. Please try again.")
+        if update.message:
+            await update.message.reply_text("An error occurred. Please try again.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command"""
+    if not update.message:
+        return
+        
     help_text = """
 🤖 <b>Bot Help</b>
 
@@ -158,10 +165,13 @@ You can use these variables in your format:
 • {description} - Description
 """
     
-    await update.message.reply_text(help_text, parse_mode='Markdown')
+    await update.message.reply_text(help_text, parse_mode='HTML')
 
 async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /addchannel command"""
+    if not update.effective_user or not update.message:
+        return
+        
     user_id = update.effective_user.id
     
     if not is_admin(user_id):
@@ -188,6 +198,9 @@ async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /removechannel command"""
+    if not update.effective_user or not update.message:
+        return
+        
     user_id = update.effective_user.id
     
     if not is_admin(user_id):
@@ -208,6 +221,9 @@ async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_T
 
 async def list_channels_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /listchannels command"""
+    if not update.effective_user or not update.message:
+        return
+        
     user_id = update.effective_user.id
     
     if not is_admin(user_id):
@@ -224,10 +240,13 @@ async def list_channels_command(update: Update, context: ContextTypes.DEFAULT_TY
     for i, channel in enumerate(channels, 1):
         channel_list += f"{i}. <code>{channel}</code>\n"
     
-    await update.message.reply_text(channel_list, parse_mode='Markdown')
+    await update.message.reply_text(channel_list, parse_mode='HTML')
 
 async def format_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /format command"""
+    if not update.effective_user or not update.message:
+        return
+        
     user_id = update.effective_user.id
     
     if not is_admin(user_id):
@@ -243,11 +262,14 @@ async def format_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• {price} - Item price\n"
         "• {link} - Link URL\n"
         "• {description} - Description",
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle regular messages from admin for auto-posting"""
+    if not update.effective_user or not update.message:
+        return
+        
     user_id = update.effective_user.id
     
     logging.info(f"Message received from user: {user_id}")
@@ -261,7 +283,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Check if message has photo
     has_photo = update.message.photo is not None
-    photo_file_id = update.message.photo[-1].file_id if has_photo else None
+    photo_file_id = update.message.photo[-1].file_id if has_photo and update.message.photo else None
     
     logging.info(f"Message text: {message_text}")
     logging.info(f"Has photo: {has_photo}")
@@ -325,14 +347,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not channels:
         # No channels configured - just send formatted message as reply
         logging.info("No channels configured, sending as reply")
-        if has_photo:
+        if has_photo and photo_file_id:
             await update.message.reply_photo(
                 photo=photo_file_id,
                 caption=formatted_message,
                 parse_mode='HTML'
             )
         else:
-            await update.message.reply_text(formatted_message, parse_mode='Markdown')
+            await update.message.reply_text(formatted_message, parse_mode='HTML')
         return
     
     success_count = 0
@@ -340,7 +362,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Send to user first (as preview)
     try:
-        if has_photo:
+        if has_photo and photo_file_id:
             await update.message.reply_photo(
                 photo=photo_file_id,
                 caption=f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}",
@@ -353,7 +375,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for channel_id in channels:
         try:
-            if has_photo:
+            if has_photo and photo_file_id:
                 await context.bot.send_photo(
                     chat_id=channel_id,
                     photo=photo_file_id,
@@ -383,6 +405,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle button callbacks"""
     query = update.callback_query
+    if not query or not query.from_user:
+        return
+        
     await query.answer()
     
     user_id = query.from_user.id
@@ -402,7 +427,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await query.edit_message_text(
             "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=reply_markup
         )
     
@@ -425,11 +450,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await query.edit_message_text(
             channel_text,
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=reply_markup
         )
     
-    elif data.startswith("toggle_") and is_admin(user_id):
+    elif data and data.startswith("toggle_") and is_admin(user_id):
         channel_id = data.replace("toggle_", "")
         success, message = db.toggle_channel(channel_id)
         
@@ -445,5 +470,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancel current conversation"""
-    await update.message.reply_text("❌ Operation cancelled.")
+    if update.message:
+        await update.message.reply_text("❌ Operation cancelled.")
     return ConversationHandler.END
