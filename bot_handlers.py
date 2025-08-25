@@ -171,8 +171,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • /help - Show this help message
 
 <b>Admin Commands:</b>
-• /addchannel <channel_id> - Add channel for posting
-• /removechannel <channel_id> - Remove channel
+• /addchannel <channel_name> - Add channel for posting
+• /removechannel <channel_name> - Remove channel
 • /listchannels - List all channels
 • /format - Set post format
 • /settings - Bot settings
@@ -199,17 +199,13 @@ async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     
     if not context.args:
-        await update.message.reply_text("❌ Please provide a channel ID.\nUsage: /addchannel @channel_username or -100xxxxxxxxx")
+        await update.message.reply_text("❌ Please provide a channel name.\nUsage: /addchannel Channel Name")
         return
     
-    channel_id = context.args[0]
+    # Join all arguments to form the channel name
+    channel_name = " ".join(context.args)
     
-    # Validate channel ID format
-    if not (channel_id.startswith('@') or channel_id.startswith('-100') or channel_id.lstrip('-').isdigit()):
-        await update.message.reply_text("❌ Invalid channel ID format. Use @channel_username or -100xxxxxxxxx")
-        return
-    
-    success, message = db.add_channel(channel_id)
+    success, message = db.add_channel(channel_name)
     
     if success:
         await update.message.reply_text(f"✅ {message}")
@@ -228,11 +224,12 @@ async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_T
         return
     
     if not context.args:
-        await update.message.reply_text("❌ Please provide a channel ID.\nUsage: /removechannel @channel_username or -100xxxxxxxxx")
+        await update.message.reply_text("❌ Please provide a channel name.\nUsage: /removechannel Channel Name")
         return
     
-    channel_id = context.args[0]
-    success, message = db.remove_channel(channel_id)
+    # Join all arguments to form the channel name
+    channel_name = " ".join(context.args)
+    success, message = db.remove_channel(channel_name)
     
     if success:
         await update.message.reply_text(f"✅ {message}")
@@ -571,13 +568,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "add_channel" and is_admin(user_id):
         try:
             await query.edit_message_caption(
-                caption="➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_username</code> or <code>/addchannel -100xxxxxxxxx</code>\n\nExample:\n<code>/addchannel @mychannel</code>",
+                caption="➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel Channel Name</code>\n\nExample:\n<code>/addchannel My Movie Channel</code>",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
             )
         except Exception:
             await query.edit_message_text(
-                "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_username</code> or <code>/addchannel -100xxxxxxxxx</code>\n\nExample:\n<code>/addchannel @mychannel</code>",
+                "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel Channel Name</code>\n\nExample:\n<code>/addchannel My Movie Channel</code>",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
             )
@@ -585,13 +582,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "remove_channel" and is_admin(user_id):
         try:
             await query.edit_message_caption(
-                caption="➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel @channel_username</code> or <code>/removechannel -100xxxxxxxxx</code>\n\nExample:\n<code>/removechannel @mychannel</code>",
+                caption="➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel Channel Name</code>\n\nExample:\n<code>/removechannel My Movie Channel</code>",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
             )
         except Exception:
             await query.edit_message_text(
-                "➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel @channel_username</code> or <code>/removechannel -100xxxxxxxxx</code>\n\nExample:\n<code>/removechannel @mychannel</code>",
+                "➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel Channel Name</code>\n\nExample:\n<code>/removechannel My Movie Channel</code>",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
             )
