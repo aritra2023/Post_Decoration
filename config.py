@@ -5,8 +5,8 @@ BOT_TOKEN = "8334858851:AAFxltESLhq8qu2Qx1WnMiIVrhsOywCJziw"
 MONGO_URI = "mongodb+srv://404movie:404moviepass@cluster0.fca76c9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 GEMINI_API_KEY = "AIzaSyAYBwHPiMIVte903r5OGLX_C2g-TStJ5Tk"
 
-# Admin user ID (replace with actual admin user ID)
-ADMIN_USER_ID = 123456789  # Replace with actual admin user ID
+# Admin user ID
+ADMIN_USER_ID = 7342290214
 
 # Default messages
 DEFAULT_START_MESSAGE = """
