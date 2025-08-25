@@ -36,14 +36,14 @@ def format_movie_links(message_text, urls):
     # Extract title (first line if it doesn't contain links)
     title_line = cleaned_lines[0].strip() if cleaned_lines else ""
     if title_line and 'http' not in title_line:
-        formatted_parts.append(f"**{title_line}**")
+        formatted_parts.append(f"<b>{title_line}</b>")
         formatted_parts.append("")
         start_index = 1
     else:
         start_index = 0
     
     # Add Watch/Download header
-    formatted_parts.append("**📥Wᴀᴛᴄʜ Oɴʟɪɴᴇ / Dᴏᴡɴʟᴏᴀᴅ**")
+    formatted_parts.append("<b>📥Wᴀᴛᴄʜ Oɴʟɪɴᴇ / Dᴏᴡɴʟᴏᴀᴅ</b>")
     formatted_parts.append("")
     
     # Process links
@@ -75,30 +75,30 @@ def format_movie_links(message_text, urls):
     has_quality = False
     for quality in ['480p', '720p', '1080p']:
         if quality_links[quality]:
-            formatted_parts.append(f"**{quality.upper()} - {quality_links[quality][0]}**")
+            formatted_parts.append(f"<b>{quality.upper()} - <a href='{quality_links[quality][0]}'>Download {quality.upper()}</a></b>")
             formatted_parts.append("")
             has_quality = True
     
     # Add 1080p default if no 1080p found but other qualities exist
     if has_quality and not quality_links['1080p']:
-        formatted_parts.append("**1080P - ᴀᴠᴀɪʟᴀʙʟᴇ ɪɴ ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ**")
+        formatted_parts.append("<b>1080P - ᴀᴠᴀɪʟᴀʙʟᴇ ɪɴ ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ</b>")
         formatted_parts.append("")
     
     # Add links without quality
     if not has_quality and terabox_links:
         if len(terabox_links) == 1:
-            formatted_parts.append(f"**Lɪɴᴋ - [Download Here]({terabox_links[0]})**")
+            formatted_parts.append(f"<b>Lɪɴᴋ - <a href='{terabox_links[0]}'>Download Here</a></b>")
             formatted_parts.append("")
         else:
             for i, link in enumerate(terabox_links, 1):
-                formatted_parts.append(f"**Pᴀʀᴛ {i} - [Download Part {i}]({link})**")
+                formatted_parts.append(f"<b>Pᴀʀᴛ {i} - <a href='{link}'>Download Part {i}</a></b>")
                 formatted_parts.append("")
     
     # Add footer with fancy box
-    formatted_parts.append("**╔.★. .═════════════════════╗**")
-    formatted_parts.append("**      ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ ‒ 29ʀꜱ./ᴍᴏɴᴛʜ**")
-    formatted_parts.append("**      𝐌ᴀɪɴ Cʜᴀɴɴᴇʟ - [𝐌ᴜꜱᴛ 𝐉ᴏɪɴ](https://t.me/+uCTbb3GPc6AwNTk1)**")
-    formatted_parts.append("**╚═════════════════════. .★.╝**")
+    formatted_parts.append("<b>╔.★. .═════════════════════╗</b>")
+    formatted_parts.append("<b>      ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ ‒ 29ʀꜱ./ᴍᴏɴᴛʜ</b>")
+    formatted_parts.append("<b>      𝐌ᴀɪɴ Cʜᴀɴɴᴇʟ - <a href='https://t.me/+uCTbb3GPc6AwNTk1'>𝐌ᴜꜱᴛ 𝐉ᴏɪɴ</a></b>")
+    formatted_parts.append("<b>╚═════════════════════. .★.╝</b>")
     
     return '\n'.join(formatted_parts)
 
@@ -137,20 +137,20 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command"""
     help_text = """
-🤖 **Bot Help**
+🤖 <b>Bot Help</b>
 
-**Public Commands:**
+<b>Public Commands:</b>
 • /start - Show main menu
 • /help - Show this help message
 
-**Admin Commands:**
+<b>Admin Commands:</b>
 • /addchannel <channel_id> - Add channel for posting
 • /removechannel <channel_id> - Remove channel
 • /listchannels - List all channels
 • /format - Set post format
 • /settings - Bot settings
 
-**Format Variables:**
+<b>Format Variables:</b>
 You can use these variables in your format:
 • {title} - Post title
 • {price} - Item price
@@ -220,9 +220,9 @@ async def list_channels_command(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("📭 No channels configured.")
         return
     
-    channel_list = "📢 **Configured Channels:**\n\n"
+    channel_list = "📢 <b>Configured Channels:</b>\n\n"
     for i, channel in enumerate(channels, 1):
-        channel_list += f"{i}. `{channel}`\n"
+        channel_list += f"{i}. <code>{channel}</code>\n"
     
     await update.message.reply_text(channel_list, parse_mode='Markdown')
 
@@ -237,8 +237,8 @@ async def format_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current_format = db.get_format()
     
     await update.message.reply_text(
-        f"📝 **Current Format:**\n\n```\n{current_format}\n```\n\n"
-        "**Available variables:**\n"
+        f"📝 <b>Current Format:</b>\n\n<pre>{current_format}</pre>\n\n"
+        "<b>Available variables:</b>\n"
         "• {title} - Post title\n"
         "• {price} - Item price\n"
         "• {link} - Link URL\n"
@@ -329,7 +329,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_photo(
                 photo=photo_file_id,
                 caption=formatted_message,
-                parse_mode='Markdown'
+                parse_mode='HTML'
             )
         else:
             await update.message.reply_text(formatted_message, parse_mode='Markdown')
@@ -343,11 +343,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if has_photo:
             await update.message.reply_photo(
                 photo=photo_file_id,
-                caption=f"📋 **Formatted Preview:**\n\n{formatted_message}",
-                parse_mode='Markdown'
+                caption=f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}",
+                parse_mode='HTML'
             )
         else:
-            await update.message.reply_text(f"📋 **Formatted Preview:**\n\n{formatted_message}", parse_mode='Markdown')
+            await update.message.reply_text(f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}", parse_mode='HTML')
     except Exception as e:
         logging.error(f"Failed to send preview to user: {e}")
     
@@ -358,13 +358,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     chat_id=channel_id,
                     photo=photo_file_id,
                     caption=formatted_message,
-                    parse_mode='Markdown'
+                    parse_mode='HTML'
                 )
             else:
                 await context.bot.send_message(
                     chat_id=channel_id,
                     text=formatted_message,
-                    parse_mode='Markdown'
+                    parse_mode='HTML'
                 )
             success_count += 1
         except Exception as e:
@@ -401,7 +401,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await query.edit_message_text(
-            "⚙️ **Settings Menu**\n\nChoose what you want to configure:",
+            "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
             parse_mode='Markdown',
             reply_markup=reply_markup
         )
@@ -413,7 +413,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("📭 No channels configured.\n\nUse /addchannel to add channels.")
             return
         
-        channel_text = "📢 **Channel Management**\n\nConfigured channels:\n\n"
+        channel_text = "📢 <b>Channel Management</b>\n\nConfigured channels:\n\n"
         keyboard = []
         
         for i, channel in enumerate(channels, 1):
