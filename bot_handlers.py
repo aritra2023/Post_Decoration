@@ -514,7 +514,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
     
     elif data == "show_all_channels" and is_admin(user_id):
-        channels = db.get_channels(active_only=False)
+        channels = db.get_all_channels_with_status()
         
         if not channels:
             try:
@@ -531,11 +531,28 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             return
         
-        channel_text = "📢 <b>All Channels</b>\n\nConfigured channels:\n\n"
-        for i, channel in enumerate(channels, 1):
-            channel_text += f"{i}. <code>{channel}</code>\n"
+        channel_text = "📢 <b>All Channels</b>\n\nClick to toggle forwarding:\n\n"
+        keyboard = []
         
-        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]]
+        for channel_data in channels:
+            channel_id = channel_data['channel_id']
+            is_active = channel_data['active']
+            status_icon = "✅" if is_active else "❌"
+            status_text = "Active" if is_active else "Inactive"
+            
+            # Add channel name to text
+            channel_text += f"<code>{channel_id}</code> - {status_text}\n"
+            
+            # Add toggle button for each channel
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{status_icon} {channel_id}", 
+                    callback_data=f"toggle_{channel_id}"
+                )
+            ])
+        
+        # Add back button
+        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="manage_channels")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         try:
@@ -585,8 +602,48 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if success:
             await query.answer(f"✅ {message}")
-            # Refresh the channel management view
-            await button_callback(update, context)  # This will show updated channel list
+            # Refresh the All Channels view to show updated status
+            channels = db.get_all_channels_with_status()
+            
+            if not channels:
+                return
+            
+            channel_text = "📢 <b>All Channels</b>\n\nClick to toggle forwarding:\n\n"
+            keyboard = []
+            
+            for channel_data in channels:
+                ch_id = channel_data['channel_id']
+                is_active = channel_data['active']
+                status_icon = "✅" if is_active else "❌"
+                status_text = "Active" if is_active else "Inactive"
+                
+                # Add channel name to text
+                channel_text += f"<code>{ch_id}</code> - {status_text}\n"
+                
+                # Add toggle button for each channel
+                keyboard.append([
+                    InlineKeyboardButton(
+                        f"{status_icon} {ch_id}", 
+                        callback_data=f"toggle_{ch_id}"
+                    )
+                ])
+            
+            # Add back button
+            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="manage_channels")])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            try:
+                await query.edit_message_caption(
+                    caption=channel_text,
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            except Exception:
+                await query.edit_message_text(
+                    channel_text,
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
         else:
             await query.answer(f"❌ {message}")
     

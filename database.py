@@ -75,6 +75,15 @@ class Database:
             logging.error(f"Error getting channels: {e}")
             return []
 
+    def get_all_channels_with_status(self):
+        """Get all channels with their active status"""
+        try:
+            channels = list(self.channels.find({}))
+            return [{"channel_id": channel["channel_id"], "active": channel.get("active", True)} for channel in channels]
+        except Exception as e:
+            logging.error(f"Error getting channels with status: {e}")
+            return []
+
     def toggle_channel(self, channel_id):
         """Toggle channel active status"""
         try:
