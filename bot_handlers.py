@@ -15,13 +15,18 @@ def format_movie_links(message_text, urls):
     """Format movie links with special template"""
     lines = message_text.split('\n')
     
-    # Clean message - remove hashtags and non-terabox links
+    # Clean message - remove hashtags, non-terabox links, and existing format text
     cleaned_lines = []
     for line in lines:
         line = line.strip()
         # Remove hashtags
         line = re.sub(r'#\w+', '', line).strip()
-        # Keep only terabox links and text
+        # Skip existing format text
+        if ('Wᴀᴛᴄʜ Oɴʟɪɴᴇ' in line or 'Dᴏᴡɴʟᴏᴀᴅ' in line or 
+            'ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ' in line or '═══' in line or
+            '╔' in line or '╚' in line or 'Cʜᴀɴɴᴇʟ' in line):
+            continue
+        # Keep only terabox links and clean text
         if line and ('terabox' in line.lower() or 'http' not in line):
             cleaned_lines.append(line)
     
