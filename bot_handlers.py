@@ -28,18 +28,9 @@ def format_movie_links(message_text, urls):
     # Start building the formatted message
     formatted_parts = []
     
-    # Check if first line is a proper title (not empty, no links, meaningful text)
+    # Extract title (first line if it doesn't contain links)
     title_line = cleaned_lines[0].strip() if cleaned_lines else ""
-    has_proper_title = (
-        title_line and 
-        'http' not in title_line and 
-        not title_line.startswith('𝗧ɪᴛᴛʟᴇ') and
-        len(title_line) > 10 and  # At least some meaningful content
-        not title_line.lower().startswith('download') and
-        not title_line.lower().startswith('watch')
-    )
-    
-    if has_proper_title:
+    if title_line and 'http' not in title_line and not title_line.startswith('𝗧ɪᴛᴛʟᴇ'):
         formatted_parts.append(f"**𝗧ɪᴛᴛʟᴇ :- {title_line}**")
         formatted_parts.append("")
         start_index = 1
