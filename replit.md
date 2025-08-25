@@ -45,19 +45,29 @@ Preferred communication style: Simple, everyday language.
 
 ## Core Services
 - **Telegram Bot API**: Primary interface for bot functionality
-- **MongoDB Atlas**: Cloud database service for data persistence (connection string in config)
-- **Google Gemini API**: AI service integration (API key configured but usage not visible in current codebase)
+- **MongoDB Atlas**: Cloud database service for data persistence
+- **Google Gemini API**: AI service integration for enhanced features
 
 ## Python Libraries
 - **python-telegram-bot**: Official Telegram bot framework
 - **pymongo**: MongoDB driver for Python
 - **flask**: Lightweight web framework for keep-alive server
-- **threading**: Built-in library for concurrent keep-alive server
+- **gunicorn**: WSGI server for production deployment
 
 ## Configuration Management
-- **Hardcoded Credentials**: Bot token, MongoDB URI, and API keys stored directly in config.py
-- **Environment Variables**: Structure ready for .env file usage (referenced in requirements but not implemented)
+- **Environment Variables**: All sensitive data stored in Replit Secrets
+  - BOT_TOKEN: Telegram bot authentication token
+  - MONGO_URI: MongoDB connection string
+  - GEMINI_API_KEY: Google AI API key
+- **Security**: Hardcoded credentials removed for production safety
 
 ## Hosting Platform
 - **Replit**: Target deployment platform with specific keep-alive requirements
 - **Port Configuration**: Flask server configured for port 5000
+- **Workflows**: "Telegram Bot" workflow for main bot, "Start application" for web server
+
+# Migration Complete
+- ✅ Secure environment variable configuration
+- ✅ All dependencies installed and working
+- ✅ Bot server running on port 5000
+- ✅ Code compatibility issues resolved

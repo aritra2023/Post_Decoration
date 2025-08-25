@@ -482,12 +482,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=reply_markup
                 )
             except Exception:
-                if query.message:
-                    await query.message.reply_text(
-                        "📢 <b>Channel Management</b>\n\nChoose an option:",
-                        parse_mode='HTML',
-                        reply_markup=reply_markup
-                    )
+                # If both edit methods fail, silently continue
+                pass
     
     elif data == "show_all_channels" and is_admin(user_id):
         channels = db.get_channels(active_only=False)
