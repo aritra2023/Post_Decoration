@@ -456,9 +456,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
         
         keyboard = [
-            [InlineKeyboardButton("📝 Change Start Message", callback_data="change_start_msg")],
-            [InlineKeyboardButton("📄 Change Format", callback_data="set_format")],
-            [InlineKeyboardButton("📢 Toggle Channels", callback_data="toggle_channels")],
             [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
             [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status} ({timer_time})", callback_data="schedule_menu")],
             [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
@@ -596,9 +593,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         success, message = db.toggle_auto_forward()
         await query.answer(f"✅ {message}" if success else f"❌ {message}")
         # Refresh settings menu to show updated status
-        # Simulate clicking settings again to refresh
-        query.data = "settings"
-        await button_callback(update, context)
+        auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
+        timer_settings = db.get_schedule_timer()
+        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
+        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
+        
+        keyboard = [
+            [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
+            [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status} ({timer_time})", callback_data="schedule_menu")],
+            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        try:
+            await query.edit_message_text(
+                "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception:
+            try:
+                await query.edit_message_caption(
+                    caption="⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            except Exception:
+                pass
     
     elif data == "schedule_menu" and is_admin(user_id):
         timer_settings = db.get_schedule_timer()
@@ -640,8 +661,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         success, message = db.toggle_schedule_timer()
         await query.answer(f"✅ {message}" if success else f"❌ {message}")
         # Refresh schedule menu
-        query.data = "schedule_menu"
-        await button_callback(update, context)
+        timer_settings = db.get_schedule_timer()
+        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
+        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
+        
+        keyboard = [
+            [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
+            [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
+            [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
+            [InlineKeyboardButton("🔙 Back to Settings", callback_data="settings")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        try:
+            await query.edit_message_text(
+                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception:
+            try:
+                await query.edit_message_caption(
+                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            except Exception:
+                pass
     
     elif data in ["hour_plus", "hour_minus", "minute_plus", "minute_minus"] and is_admin(user_id):
         timer_settings = db.get_schedule_timer()
@@ -660,8 +706,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         success, message = db.set_schedule_timer(hours, minutes)
         await query.answer(f"✅ {message}" if success else f"❌ {message}")
         # Refresh schedule menu
-        query.data = "schedule_menu"
-        await button_callback(update, context)
+        timer_settings = db.get_schedule_timer()
+        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
+        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
+        
+        keyboard = [
+            [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
+            [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
+            [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
+            [InlineKeyboardButton("🔙 Back to Settings", callback_data="settings")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        try:
+            await query.edit_message_text(
+                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception:
+            try:
+                await query.edit_message_caption(
+                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            except Exception:
+                pass
     
     elif data == "back_to_main":
         # Edit back to welcome message
