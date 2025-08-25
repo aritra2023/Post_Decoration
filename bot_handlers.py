@@ -115,8 +115,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = []
         
         if is_admin(user_id):
+            # Get current settings status for direct display
+            auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
+            timer_settings = db.get_schedule_timer()
+            timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
+            
             keyboard = [
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("📊 Settings", callback_data="settings")]
+                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
+                [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
+                [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
+                [InlineKeyboardButton("📊 Settings", callback_data="settings")]
             ]
         else:
             keyboard = []
@@ -449,22 +457,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await help_command(update, context)
     
     elif data == "settings" and is_admin(user_id):
-        # Get current settings status
-        auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
-        timer_settings = db.get_schedule_timer()
-        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
-        
+        # Dummy settings button - just shows a message
         keyboard = [
-            [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
-            [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status} ({timer_time})", callback_data="schedule_menu")],
             [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         try:
             await query.edit_message_text(
-                "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                "⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
@@ -472,7 +473,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # If it's a photo message, edit the caption instead
             try:
                 await query.edit_message_caption(
-                    caption="⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                    caption="⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
                     parse_mode='HTML',
                     reply_markup=reply_markup
                 )
@@ -480,7 +481,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Fallback: send new message if editing fails
                 if query.message and hasattr(query.message, 'reply_text'):
                     await query.message.reply_text(
-                        "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                        "⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
                         parse_mode='HTML',
                         reply_markup=reply_markup
                     )
@@ -592,29 +593,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "toggle_auto_forward" and is_admin(user_id):
         success, message = db.toggle_auto_forward()
         await query.answer(f"✅ {message}" if success else f"❌ {message}")
-        # Refresh settings menu to show updated status
+        # Refresh main menu to show updated status
+        user_name = query.from_user.first_name or "User"
+        start_message = db.get_start_message().format(user_name)
+        
+        # Get current settings status for direct display
         auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
         timer_settings = db.get_schedule_timer()
         timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
         
         keyboard = [
+            [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
             [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
-            [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status} ({timer_time})", callback_data="schedule_menu")],
-            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
+            [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
+            [InlineKeyboardButton("📊 Settings", callback_data="settings")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         try:
-            await query.edit_message_text(
-                "⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+            await query.edit_message_caption(
+                caption=start_message,
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
         except Exception:
             try:
-                await query.edit_message_caption(
-                    caption="⚙️ <b>Settings Menu</b>\n\nChoose what you want to configure:",
+                await query.edit_message_text(
+                    start_message,
                     parse_mode='HTML',
                     reply_markup=reply_markup
                 )
@@ -630,7 +635,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
             [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
             [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
-            [InlineKeyboardButton("🔙 Back to Settings", callback_data="settings")]
+            [InlineKeyboardButton("🔙 Back to Main", callback_data="back_to_main")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -669,7 +674,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
             [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
             [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
-            [InlineKeyboardButton("🔙 Back to Settings", callback_data="settings")]
+            [InlineKeyboardButton("🔙 Back to Main", callback_data="back_to_main")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -714,7 +719,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
             [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
             [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
-            [InlineKeyboardButton("🔙 Back to Settings", callback_data="settings")]
+            [InlineKeyboardButton("🔙 Back to Main", callback_data="back_to_main")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -741,8 +746,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         keyboard = []
         if is_admin(query.from_user.id):
+            # Get current settings status for direct display
+            auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
+            timer_settings = db.get_schedule_timer()
+            timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
+            
             keyboard = [
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("📊 Settings", callback_data="settings")]
+                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
+                [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
+                [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
+                [InlineKeyboardButton("📊 Settings", callback_data="settings")]
             ]
         
         reply_markup = InlineKeyboardMarkup(keyboard)
