@@ -30,8 +30,8 @@ def format_movie_links(message_text, urls):
     
     # Extract title (first line if it doesn't contain links)
     title_line = cleaned_lines[0].strip() if cleaned_lines else ""
-    if title_line and 'http' not in title_line and not title_line.startswith('𝗧ɪᴛᴛʟᴇ'):
-        formatted_parts.append(f"**𝗧ɪᴛᴛʟᴇ :- {title_line}**")
+    if title_line and 'http' not in title_line:
+        formatted_parts.append(f"**{title_line}**")
         formatted_parts.append("")
         start_index = 1
     else:
