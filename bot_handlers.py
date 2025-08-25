@@ -3,7 +3,7 @@ import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from database import db
-from config import ADMIN_USER_ID
+from config import ADMIN_USER_ID, WELCOME_IMAGES
 
 # Simple state tracking - no conversation handler needed
 
@@ -108,7 +108,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not update.effective_user or not update.message:
             return
         user_id = update.effective_user.id
-        start_message = db.get_start_message()
+        user_name = update.effective_user.first_name or "User"
+        start_message = db.get_start_message().format(user_name)
         
         # Create keyboard
         keyboard = []
@@ -128,6 +129,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         if update.message:
+            # Send welcome images first
+            for image_url in WELCOME_IMAGES:
+                try:
+                    await update.message.reply_photo(photo=image_url)
+                except Exception as e:
+                    logging.error(f"Failed to send welcome image {image_url}: {e}")
+            
+            # Send welcome message
             await update.message.reply_text(
                 start_message,
                 parse_mode='Markdown',
