@@ -453,7 +453,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
         timer_settings = db.get_schedule_timer()
         timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
+        
+        # Convert to 12-hour format with AM/PM
+        hours = timer_settings['hours']
+        minutes = timer_settings['minutes']
+        if hours == 0:
+            timer_time = f"12:{minutes:02d} AM"
+        elif hours < 12:
+            timer_time = f"{hours}:{minutes:02d} AM"
+        elif hours == 12:
+            timer_time = f"12:{minutes:02d} PM"
+        else:
+            timer_time = f"{hours-12}:{minutes:02d} PM"
         
         keyboard = [
             [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
@@ -596,7 +607,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
         timer_settings = db.get_schedule_timer()
         timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
+        
+        # Convert to 12-hour format with AM/PM
+        hours = timer_settings['hours']
+        minutes = timer_settings['minutes']
+        if hours == 0:
+            timer_time = f"12:{minutes:02d} AM"
+        elif hours < 12:
+            timer_time = f"{hours}:{minutes:02d} AM"
+        elif hours == 12:
+            timer_time = f"12:{minutes:02d} PM"
+        else:
+            timer_time = f"{hours-12}:{minutes:02d} PM"
         
         keyboard = [
             [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
@@ -624,7 +646,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "schedule_menu" and is_admin(user_id):
         timer_settings = db.get_schedule_timer()
         timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
+        
+        # Convert to 12-hour format with AM/PM
+        hours = timer_settings['hours']
+        minutes = timer_settings['minutes']
+        if hours == 0:
+            timer_time = f"12:{minutes:02d} AM"
+        elif hours < 12:
+            timer_time = f"{hours}:{minutes:02d} AM"
+        elif hours == 12:
+            timer_time = f"12:{minutes:02d} PM"
+        else:
+            timer_time = f"{hours-12}:{minutes:02d} PM"
         
         keyboard = [
             [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
@@ -636,7 +669,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         try:
             await query.edit_message_text(
-                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                f"⏰ <b>Schedule Timer Settings</b>\n\nScheduled Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nAt this time, auto-forward will be enabled automatically for posting messages.",
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
@@ -644,7 +677,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # If it's a photo message, edit the caption instead
             try:
                 await query.edit_message_caption(
-                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nScheduled Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nAt this time, auto-forward will be enabled automatically for posting messages.",
                     parse_mode='HTML',
                     reply_markup=reply_markup
                 )
@@ -652,7 +685,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Fallback: send new message if editing fails
                 if query.message and hasattr(query.message, 'reply_text'):
                     await query.message.reply_text(
-                        f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                        f"⏰ <b>Schedule Timer Settings</b>\n\nScheduled Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nAt this time, auto-forward will be enabled automatically for posting messages.",
                         parse_mode='HTML',
                         reply_markup=reply_markup
                     )
@@ -675,14 +708,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         try:
             await query.edit_message_text(
-                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                f"⏰ <b>Schedule Timer Settings</b>\n\nScheduled Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nAt this time, auto-forward will be enabled automatically for posting messages.",
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
         except Exception:
             try:
                 await query.edit_message_caption(
-                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nScheduled Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nAt this time, auto-forward will be enabled automatically for posting messages.",
                     parse_mode='HTML',
                     reply_markup=reply_markup
                 )
@@ -720,14 +753,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         try:
             await query.edit_message_text(
-                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                f"⏰ <b>Schedule Timer Settings</b>\n\nScheduled Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nAt this time, auto-forward will be enabled automatically for posting messages.",
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
         except Exception:
             try:
                 await query.edit_message_caption(
-                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nScheduled Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nAt this time, auto-forward will be enabled automatically for posting messages.",
                     parse_mode='HTML',
                     reply_markup=reply_markup
                 )
