@@ -466,16 +466,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        # Delete the original message and send a new one
+        # Edit the photo caption instead of creating new message
         try:
-            await query.message.delete()
-            await query.message.reply_text(
-                "📢 <b>Channel Management</b>\n\nChoose an option:",
+            await query.edit_message_caption(
+                caption="📢 <b>Channel Management</b>\n\nChoose an option:",
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
         except Exception as e:
-            # Fallback: try to edit if possible
+            # Fallback for text messages
             try:
                 await query.edit_message_text(
                     "📢 <b>Channel Management</b>\n\nChoose an option:",
@@ -493,11 +492,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         channels = db.get_channels(active_only=False)
         
         if not channels:
-            await query.edit_message_text(
-                "📭 <b>No channels configured</b>\n\nUse Add Channel option to add channels.",
-                parse_mode='HTML',
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-            )
+            try:
+                await query.edit_message_caption(
+                    caption="📭 <b>No channels configured</b>\n\nUse Add Channel option to add channels.",
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+                )
+            except Exception:
+                await query.edit_message_text(
+                    "📭 <b>No channels configured</b>\n\nUse Add Channel option to add channels.",
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+                )
             return
         
         channel_text = "📢 <b>All Channels</b>\n\nConfigured channels:\n\n"
@@ -507,25 +513,46 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await query.edit_message_text(
-            channel_text,
-            parse_mode='HTML',
-            reply_markup=reply_markup
-        )
+        try:
+            await query.edit_message_caption(
+                caption=channel_text,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception:
+            await query.edit_message_text(
+                channel_text,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
     
     elif data == "add_channel" and is_admin(user_id):
-        await query.edit_message_text(
-            "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_username</code> or <code>/addchannel -100xxxxxxxxx</code>\n\nExample:\n<code>/addchannel @mychannel</code>",
-            parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-        )
+        try:
+            await query.edit_message_caption(
+                caption="➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_username</code> or <code>/addchannel -100xxxxxxxxx</code>\n\nExample:\n<code>/addchannel @mychannel</code>",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+            )
+        except Exception:
+            await query.edit_message_text(
+                "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_username</code> or <code>/addchannel -100xxxxxxxxx</code>\n\nExample:\n<code>/addchannel @mychannel</code>",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+            )
     
     elif data == "remove_channel" and is_admin(user_id):
-        await query.edit_message_text(
-            "➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel @channel_username</code> or <code>/removechannel -100xxxxxxxxx</code>\n\nExample:\n<code>/removechannel @mychannel</code>",
-            parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-        )
+        try:
+            await query.edit_message_caption(
+                caption="➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel @channel_username</code> or <code>/removechannel -100xxxxxxxxx</code>\n\nExample:\n<code>/removechannel @mychannel</code>",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+            )
+        except Exception:
+            await query.edit_message_text(
+                "➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel @channel_username</code> or <code>/removechannel -100xxxxxxxxx</code>\n\nExample:\n<code>/removechannel @mychannel</code>",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
+            )
     
     elif data and data.startswith("toggle_") and is_admin(user_id):
         channel_id = data.replace("toggle_", "")
@@ -539,13 +566,30 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(f"❌ {message}")
     
     elif data == "back_to_main":
-        # Delete current message and send new start message
+        # Edit back to welcome message
+        user_name = query.from_user.first_name or "User"
+        start_message = db.get_start_message().format(user_name)
+        
+        keyboard = []
+        if is_admin(query.from_user.id):
+            keyboard = [
+                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("📊 Settings", callback_data="settings")]
+            ]
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
         try:
-            await query.message.delete()
+            await query.edit_message_caption(
+                caption=start_message,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
         except Exception:
-            pass
-        # Create a fake update for start command
-        await start_command(update, context)
+            await query.edit_message_text(
+                start_message,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
 
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancel current conversation"""
