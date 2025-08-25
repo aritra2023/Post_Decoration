@@ -171,8 +171,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • /help - Show this help message
 
 <b>Admin Commands:</b>
-• /addchannel <channel_name> - Add channel for posting
-• /removechannel <channel_name> - Remove channel
+• /addchannel @channel_id [Name] - Add channel for posting
+• /removechannel Channel Name - Remove channel
 • /listchannels - List all channels
 • /format - Set post format
 • /settings - Bot settings
@@ -199,13 +199,28 @@ async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     
     if not context.args:
-        await update.message.reply_text("❌ Please provide a channel name.\nUsage: /addchannel Channel Name")
+        await update.message.reply_text("❌ Please provide channel ID and name.\nUsage: /addchannel @channel_id [Channel Name]")
         return
     
-    # Join all arguments to form the channel name
-    channel_name = " ".join(context.args)
+    # Join all arguments to get the full text
+    full_text = " ".join(context.args)
     
-    success, message = db.add_channel(channel_name)
+    # Check if there's a bracket format
+    if '[' in full_text and ']' in full_text:
+        # Extract channel ID (before bracket) and name (inside bracket)
+        parts = full_text.split('[', 1)
+        channel_id = parts[0].strip()
+        channel_name = parts[1].split(']')[0].strip()
+        
+        # Validate channel ID format
+        if not (channel_id.startswith('@') or channel_id.startswith('-100') or channel_id.lstrip('-').isdigit()):
+            await update.message.reply_text("❌ Invalid channel ID format. Use @channel_username or -100xxxxxxxxx")
+            return
+            
+        success, message = db.add_channel_with_name(channel_id, channel_name)
+    else:
+        await update.message.reply_text("❌ Please use format: /addchannel @channel_id [Channel Name]")
+        return
     
     if success:
         await update.message.reply_text(f"✅ {message}")
@@ -224,12 +239,12 @@ async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_T
         return
     
     if not context.args:
-        await update.message.reply_text("❌ Please provide a channel name.\nUsage: /removechannel Channel Name")
+        await update.message.reply_text("❌ Please provide channel name.\nUsage: /removechannel Channel Name")
         return
     
     # Join all arguments to form the channel name
     channel_name = " ".join(context.args)
-    success, message = db.remove_channel(channel_name)
+    success, message = db.remove_channel_by_name(channel_name)
     
     if success:
         await update.message.reply_text(f"✅ {message}")
@@ -247,7 +262,7 @@ async def list_channels_command(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("❌ You don't have permission to use this command.")
         return
     
-    channels = db.get_channels(active_only=False)
+    channels = db.get_channels_display(active_only=False)
     
     if not channels:
         await update.message.reply_text("📭 No channels configured.")
@@ -533,17 +548,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         for channel_data in channels:
             channel_id = channel_data['channel_id']
+            channel_name = channel_data['channel_name']
             is_active = channel_data['active']
             status_icon = "✅" if is_active else "❌"
             status_text = "Active" if is_active else "Inactive"
             
             # Add channel name to text
-            channel_text += f"<code>{channel_id}</code> - {status_text}\n"
+            channel_text += f"<code>{channel_name}</code> - {status_text}\n"
             
-            # Add toggle button for each channel
+            # Add toggle button for each channel (use display name but toggle by ID)
             keyboard.append([
                 InlineKeyboardButton(
-                    f"{status_icon} {channel_id}", 
+                    f"{status_icon} {channel_name}", 
                     callback_data=f"toggle_{channel_id}"
                 )
             ])
@@ -568,13 +584,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "add_channel" and is_admin(user_id):
         try:
             await query.edit_message_caption(
-                caption="➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel Channel Name</code>\n\nExample:\n<code>/addchannel My Movie Channel</code>",
+                caption="➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_id [Channel Name]</code>\n\nExample:\n<code>/addchannel @mychannel [My Movie Channel]</code>",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
             )
         except Exception:
             await query.edit_message_text(
-                "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel Channel Name</code>\n\nExample:\n<code>/addchannel My Movie Channel</code>",
+                "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_id [Channel Name]</code>\n\nExample:\n<code>/addchannel @mychannel [My Movie Channel]</code>",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
             )
@@ -610,17 +626,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             for channel_data in channels:
                 ch_id = channel_data['channel_id']
+                ch_name = channel_data['channel_name']
                 is_active = channel_data['active']
                 status_icon = "✅" if is_active else "❌"
                 status_text = "Active" if is_active else "Inactive"
                 
                 # Add channel name to text
-                channel_text += f"<code>{ch_id}</code> - {status_text}\n"
+                channel_text += f"<code>{ch_name}</code> - {status_text}\n"
                 
-                # Add toggle button for each channel
+                # Add toggle button for each channel (use display name but toggle by ID)
                 keyboard.append([
                     InlineKeyboardButton(
-                        f"{status_icon} {ch_id}", 
+                        f"{status_icon} {ch_name}", 
                         callback_data=f"toggle_{ch_id}"
                     )
                 ])

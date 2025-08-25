@@ -71,3 +71,6 @@ Preferred communication style: Simple, everyday language.
 - ✅ All dependencies installed and working
 - ✅ Bot server running on port 5000
 - ✅ Code compatibility issues resolved
+- ✅ Settings button made dummy, main features moved to main menu
+- ✅ Channel management with custom names (/addchannel @id [Name])
+- ✅ Toggle buttons show friendly names instead of technical IDs

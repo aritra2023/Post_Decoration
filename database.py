@@ -53,6 +53,23 @@ class Database:
             logging.error(f"Error adding channel: {e}")
             return False, f"Error: {e}"
 
+    def add_channel_with_name(self, channel_id, channel_name):
+        """Add a channel with custom name to the database"""
+        try:
+            # Check if channel already exists by ID or name
+            if self.channels.find_one({"$or": [{"channel_id": channel_id}, {"channel_name": channel_name}]}):
+                return False, "Channel with this ID or name already exists"
+            
+            self.channels.insert_one({
+                "channel_id": channel_id,
+                "channel_name": channel_name,
+                "active": True
+            })
+            return True, f"Channel '{channel_name}' added successfully"
+        except Exception as e:
+            logging.error(f"Error adding channel with name: {e}")
+            return False, f"Error: {e}"
+
     def remove_channel(self, channel_id):
         """Remove a channel from the database"""
         try:
@@ -65,21 +82,54 @@ class Database:
             logging.error(f"Error removing channel: {e}")
             return False, f"Error: {e}"
 
+    def remove_channel_by_name(self, channel_name):
+        """Remove a channel by its display name"""
+        try:
+            result = self.channels.delete_one({"channel_name": channel_name})
+            if result.deleted_count > 0:
+                return True, f"Channel '{channel_name}' removed successfully"
+            else:
+                return False, f"Channel '{channel_name}' not found"
+        except Exception as e:
+            logging.error(f"Error removing channel by name: {e}")
+            return False, f"Error: {e}"
+
     def get_channels(self, active_only=True):
         """Get all channels from the database"""
         try:
             query = {"active": True} if active_only else {}
             channels = list(self.channels.find(query))
+            # Return actual channel IDs for posting messages
             return [channel["channel_id"] for channel in channels]
         except Exception as e:
             logging.error(f"Error getting channels: {e}")
+            return []
+    
+    def get_channels_display(self, active_only=True):
+        """Get channels with display names for UI"""
+        try:
+            query = {"active": True} if active_only else {}
+            channels = list(self.channels.find(query))
+            # Return display names for UI
+            return [channel.get("channel_name", channel["channel_id"]) for channel in channels]
+        except Exception as e:
+            logging.error(f"Error getting channels display: {e}")
             return []
 
     def get_all_channels_with_status(self):
         """Get all channels with their active status"""
         try:
             channels = list(self.channels.find({}))
-            return [{"channel_id": channel["channel_id"], "active": channel.get("active", True)} for channel in channels]
+            result = []
+            for channel in channels:
+                # Use channel_name if available, otherwise use channel_id
+                display_name = channel.get("channel_name", channel["channel_id"])
+                result.append({
+                    "channel_id": channel["channel_id"],
+                    "channel_name": display_name,
+                    "active": channel.get("active", True)
+                })
+            return result
         except Exception as e:
             logging.error(f"Error getting channels with status: {e}")
             return []
@@ -96,8 +146,11 @@ class Database:
                 {"channel_id": channel_id},
                 {"$set": {"active": new_status}}
             )
+            
+            # Use display name if available
+            display_name = channel.get("channel_name", channel_id)
             status_text = "activated" if new_status else "deactivated"
-            return True, f"Channel {status_text} successfully"
+            return True, f"'{display_name}' {status_text} successfully"
         except Exception as e:
             logging.error(f"Error toggling channel: {e}")
             return False, f"Error: {e}"
