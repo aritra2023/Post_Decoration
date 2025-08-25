@@ -3,8 +3,8 @@ import sys
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, filters
 from bot_handlers import (
     start_command, help_command, add_channel_command, remove_channel_command,
-    list_channels_command, format_command, handle_format_input, handle_message,
-    button_callback, cancel_command, WAITING_FORMAT
+    list_channels_command, format_command, handle_message,
+    button_callback, cancel_command
 )
 from config import BOT_TOKEN
 from keep_alive import keep_alive
@@ -30,22 +30,14 @@ def main():
         # Create application
         application = Application.builder().token(BOT_TOKEN).build()
         
-        # Add conversation handler for format setting
-        format_conv_handler = ConversationHandler(
-            entry_points=[CommandHandler('format', format_command)],
-            states={
-                WAITING_FORMAT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_format_input)],
-            },
-            fallbacks=[CommandHandler('cancel', cancel_command)],
-        )
-        
-        # Add handlers
+        # Add handlers - Commands first
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CommandHandler("help", help_command))
         application.add_handler(CommandHandler("addchannel", add_channel_command))
         application.add_handler(CommandHandler("removechannel", remove_channel_command))
         application.add_handler(CommandHandler("listchannels", list_channels_command))
-        application.add_handler(format_conv_handler)
+        application.add_handler(CommandHandler("format", format_command))
+        application.add_handler(CommandHandler("cancel", cancel_command))
         application.add_handler(CallbackQueryHandler(button_callback))
         
         # Message handler for auto-posting (should be last)

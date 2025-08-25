@@ -5,8 +5,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database import db
 from config import ADMIN_USER_ID
 
-# Conversation states
-WAITING_FORMAT, WAITING_START_MESSAGE, WAITING_CHANNEL_ADD, WAITING_CHANNEL_REMOVE = range(4)
+# Simple state tracking - no conversation handler needed
 
 def is_admin(user_id):
     """Check if user is admin"""
@@ -210,36 +209,19 @@ async def format_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not is_admin(user_id):
         await update.message.reply_text("❌ You don't have permission to use this command.")
-        return ConversationHandler.END
+        return
     
     current_format = db.get_format()
     
     await update.message.reply_text(
         f"📝 **Current Format:**\n\n```\n{current_format}\n```\n\n"
-        "Send me the new format you want to use.\n\n"
         "**Available variables:**\n"
         "• {title} - Post title\n"
         "• {price} - Item price\n"
         "• {link} - Link URL\n"
-        "• {description} - Description\n\n"
-        "Send /cancel to cancel.",
+        "• {description} - Description",
         parse_mode='Markdown'
     )
-    
-    return WAITING_FORMAT
-
-async def handle_format_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle format input"""
-    new_format = update.message.text
-    
-    success, message = db.set_format(new_format)
-    
-    if success:
-        await update.message.reply_text(f"✅ {message}\n\n**New Format:**\n```\n{new_format}\n```", parse_mode='Markdown')
-    else:
-        await update.message.reply_text(f"❌ {message}")
-    
-    return ConversationHandler.END
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle regular messages from admin for auto-posting"""
