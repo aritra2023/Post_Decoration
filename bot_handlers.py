@@ -129,19 +129,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         if update.message:
-            # Send welcome images first
-            for image_url in WELCOME_IMAGES:
-                try:
-                    await update.message.reply_photo(photo=image_url)
-                except Exception as e:
-                    logging.error(f"Failed to send welcome image {image_url}: {e}")
+            # Alternate between the two welcome images
+            import time
+            image_index = int(time.time()) % len(WELCOME_IMAGES)
+            selected_image = WELCOME_IMAGES[image_index]
             
-            # Send welcome message
-            await update.message.reply_text(
-                start_message,
-                parse_mode='Markdown',
-                reply_markup=reply_markup
-            )
+            # Send welcome image with message as caption
+            try:
+                await update.message.reply_photo(
+                    photo=selected_image,
+                    caption=start_message,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+            except Exception as e:
+                logging.error(f"Failed to send welcome image with caption: {e}")
+                # Fallback to text message if image fails
+                await update.message.reply_text(
+                    start_message,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
     except Exception as e:
         logging.error(f"Error in start command: {e}")
         if update.message:
