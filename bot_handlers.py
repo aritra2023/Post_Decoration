@@ -13,43 +13,70 @@ def is_admin(user_id):
     return user_id == ADMIN_USER_ID
 
 def format_movie_links(message_text, urls):
-    """Format movie links with watch/download template"""
+    """Format movie links with special template"""
     lines = message_text.split('\n')
-    
-    # Extract title (first line usually)
-    title = lines[0].strip() if lines else "Movie"
     
     # Start building the formatted message
     formatted_parts = []
-    formatted_parts.append(f"🎬 **{title}**")
+    
+    # Extract title (first line if it doesn't contain links)
+    title_line = lines[0].strip() if lines else ""
+    if title_line and 'http' not in title_line:
+        formatted_parts.append(f"**𝗧ɪᴛᴛʟᴇ :- {title_line}**")
+        formatted_parts.append("")
+        start_index = 1
+    else:
+        start_index = 0
+    
+    # Add Watch/Download header
+    formatted_parts.append("**📥Wᴀᴛᴄʜ Oɴʟɪɴᴇ / Dᴏᴡɴʟᴏᴀᴅ**")
     formatted_parts.append("")
     
-    # Add Watch and Download header
-    formatted_parts.append("📺 **WATCH AND DOWNLOAD**")
-    formatted_parts.append("")
+    # Process links
+    quality_links = {'480p': [], '720p': [], '1080p': []}
+    other_links = []
     
-    # Process each line to find quality and links
-    for line in lines[1:]:  # Skip first line (title)
+    for line in lines[start_index:]:
         line = line.strip()
-        if line and ('http' in line or any(quality in line.lower() for quality in ['480p', '720p', '1080p', '4k', 'hd'])):
-            # Find quality in the line
+        if line and 'http' in line:
+            # Check for quality
             quality_found = None
-            for quality in ['480p', '720p', '1080p', '4k', 'hd']:
+            for quality in ['480p', '720p', '1080p']:
                 if quality in line.lower():
-                    quality_found = quality.upper()
+                    quality_found = quality
                     break
             
             if quality_found:
-                formatted_parts.append(f"🎭 **{quality_found}**")
-            
-            # Add the line with link
-            formatted_parts.append(line)
+                # Extract the link
+                url_pattern = r'https?://[^\s]+'
+                link_match = re.search(url_pattern, line)
+                if link_match:
+                    quality_links[quality_found].append(link_match.group())
+            else:
+                # No quality mentioned, add the whole line
+                other_links.append(line)
+    
+    # Add quality links
+    for quality in ['480p', '720p', '1080p']:
+        if quality_links[quality]:
+            formatted_parts.append(f"**{quality.upper()} - {quality_links[quality][0]}**")
+            formatted_parts.append("")
+        elif quality == '1080p':
+            # Default 1080p message if not available
+            formatted_parts.append("**1080P - Available in Direct File Channel**")
             formatted_parts.append("")
     
-    # Add backup channel footer
-    formatted_parts.append("━━━━━━━━━━━━━━━━━")
-    formatted_parts.append("📡 **Backup Channel**")
-    formatted_parts.append("https://t.me/+uCTbb3GPc6AwNTk1")
+    # Add other links without quality
+    for link_line in other_links:
+        formatted_parts.append(f"**{link_line}**")
+        formatted_parts.append("")
+    
+    # Add footer
+    formatted_parts.append("**▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬**")
+    formatted_parts.append("**ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ ‒ 29ʀꜱ./ᴍᴏɴᴛʜ**")
+    formatted_parts.append("**𝐌ᴀɪɴ Cʜᴀɴɴᴇʟ**")
+    formatted_parts.append("**https://t.me/+uCTbb3GPc6AwNTk1**")
+    formatted_parts.append("**https://t.me/+uCTbb3GPc6AwNTk1**")
     
     return '\n'.join(formatted_parts)
 
