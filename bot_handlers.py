@@ -116,15 +116,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if is_admin(user_id):
             keyboard = [
-                [InlineKeyboardButton("📊 Settings", callback_data="settings")],
-                [InlineKeyboardButton("📝 Set Format", callback_data="set_format")],
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
-                [InlineKeyboardButton("ℹ️ Help", callback_data="help")]
+                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("📊 Settings", callback_data="settings")]
             ]
         else:
-            keyboard = [
-                [InlineKeyboardButton("ℹ️ Help", callback_data="help")]
-            ]
+            keyboard = []
         
         reply_markup = InlineKeyboardMarkup(keyboard)
         
