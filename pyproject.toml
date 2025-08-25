@@ -9,4 +9,5 @@ dependencies = [
     "python-telegram-bot>=22.3",
     "requests>=2.32.5",
     "telegram>=0.0.1",
+    "gunicorn>=21.2.0",
 ]

@@ -29,7 +29,7 @@ def main():
         
         # Validate bot token
         if not BOT_TOKEN:
-            logger.error("BOT_TOKEN environment variable is required")
+            logger.error("BOT_TOKEN environment variable is required. Please set it in your environment.")
             sys.exit(1)
             
         # Create application

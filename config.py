@@ -1,9 +1,9 @@
 import os
 
-# Bot configuration - Default values for easy setup
-BOT_TOKEN = os.getenv("BOT_TOKEN") or "8334858851:AAFxltESLhq8qu2Qx1WnMiIVrhsOywCJziw"
-MONGO_URI = os.getenv("MONGO_URI") or "mongodb+srv://404movie:404moviepass@cluster0.fca76c9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyAYBwHPiMIVte903r5OGLX_C2g-TStJ5Tk"
+# Bot configuration - Environment variables only for security
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+MONGO_URI = os.getenv("MONGO_URI")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Admin user ID
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "7342290214"))
