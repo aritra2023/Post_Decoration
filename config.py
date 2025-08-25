@@ -9,7 +9,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyAYBwHPiMIVte903r5OGLX_C2g
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "7342290214"))
 
 # Default messages
-DEFAULT_START_MESSAGE = "**𝐇ᴇʏ {}, 𝐈'ᴍ ʏᴏᴜʀ sᴍᴀʀᴛ ᴅᴇᴄᴏʀᴀᴛɪɴɢ + ᴀᴜᴛᴏ-ᴘᴏsᴛɪɴɢ ʙᴏᴛ! 🎉 𝐈 ᴄᴀɴ sᴛʏʟᴇ ᴀɴᴅ ғᴏʀᴍᴀᴛ ʏᴏᴜʀ ᴘᴏsᴛs ʙᴇᴀᴜᴛɪғᴜʟʟʏ, ɢɪᴠɪɴɢ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀ sᴜᴘᴇʀ sᴀᴛɪsғʏɪɴɢ ᴀɴᴅ ᴘʀᴏғᴇssɪᴏɴᴀʟ ʟᴏᴏᴋ. 🚀✨**"
+DEFAULT_START_MESSAGE = "<b>𝐇ᴇʏ {}, 𝐈'ᴍ ʏᴏᴜʀ sᴍᴀʀᴛ ᴅᴇᴄᴏʀᴀᴛɪɴɢ + ᴀᴜᴛᴏ-ᴘᴏsᴛɪɴɢ ʙᴏᴛ! 🎉 𝐈 ᴄᴀɴ sᴛʏʟᴇ ᴀɴᴅ ғᴏʀᴍᴀᴛ ʏᴏᴜʀ ᴘᴏsᴛs ʙᴇᴀᴜᴛɪғᴜʟʟʏ, ɢɪᴠɪɴɢ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀ sᴜᴘᴇʀ sᴀᴛɪsғʏɪɴɢ ᴀɴᴅ ᴘʀᴏғᴇssɪᴏɴᴀʟ ʟᴏᴏᴋ. 🚀✨</b>"
 
 # Welcome images
 WELCOME_IMAGES = [

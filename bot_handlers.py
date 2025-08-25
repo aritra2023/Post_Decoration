@@ -139,7 +139,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_photo(
                     photo=selected_image,
                     caption=start_message,
-                    parse_mode='Markdown',
+                    parse_mode='HTML',
                     reply_markup=reply_markup
                 )
             except Exception as e:
@@ -147,7 +147,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Fallback to text message if image fails
                 await update.message.reply_text(
                     start_message,
-                    parse_mode='Markdown',
+                    parse_mode='HTML',
                     reply_markup=reply_markup
                 )
     except Exception as e:
