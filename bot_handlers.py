@@ -245,22 +245,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle regular messages from admin for auto-posting"""
     user_id = update.effective_user.id
     
+    logging.info(f"Message received from user: {user_id}")
+    
     if not is_admin(user_id):
+        logging.info(f"User {user_id} is not admin. Admin ID: {ADMIN_USER_ID}")
         return
     
     # Get message content
     message_text = update.message.text or update.message.caption or ""
     
+    logging.info(f"Message text: {message_text}")
+    
     if not message_text:
+        logging.info("No message text found")
         return
     
     # Check if it's a format bypass (contains links)
     url_pattern = r'https?://[^\s]+'
     urls = re.findall(url_pattern, message_text)
     
+    logging.info(f"URLs found: {urls}")
+    
     if urls:
         # Auto-format with movie/content template
+        logging.info("Applying movie format")
         formatted_message = format_movie_links(message_text, urls)
+        logging.info(f"Formatted message: {formatted_message}")
     else:
         # Try to extract information from the message
         lines = message_text.split('\n')
