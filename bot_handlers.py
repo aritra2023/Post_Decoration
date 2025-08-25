@@ -313,11 +313,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     channels = db.get_channels(active_only=True)
     
     if not channels:
-        await update.message.reply_text("❌ No active channels configured for posting.")
+        # No channels configured - just send formatted message as reply
+        logging.info("No channels configured, sending as reply")
+        await update.message.reply_text(formatted_message, parse_mode='Markdown')
         return
     
     success_count = 0
     failed_channels = []
+    
+    # Send to user first (as preview)
+    try:
+        await update.message.reply_text(f"📋 **Formatted Preview:**\n\n{formatted_message}", parse_mode='Markdown')
+    except Exception as e:
+        logging.error(f"Failed to send preview to user: {e}")
     
     for channel_id in channels:
         try:
