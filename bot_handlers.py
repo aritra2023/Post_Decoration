@@ -12,6 +12,47 @@ def is_admin(user_id):
     """Check if user is admin"""
     return user_id == ADMIN_USER_ID
 
+def format_movie_links(message_text, urls):
+    """Format movie links with watch/download template"""
+    lines = message_text.split('\n')
+    
+    # Extract title (first line usually)
+    title = lines[0].strip() if lines else "Movie"
+    
+    # Start building the formatted message
+    formatted_parts = []
+    formatted_parts.append(f"🎬 **{title}**")
+    formatted_parts.append("")
+    
+    # Add Watch and Download header
+    formatted_parts.append("📺 **WATCH AND DOWNLOAD**")
+    formatted_parts.append("")
+    
+    # Process each line to find quality and links
+    for line in lines[1:]:  # Skip first line (title)
+        line = line.strip()
+        if line and ('http' in line or any(quality in line.lower() for quality in ['480p', '720p', '1080p', '4k', 'hd'])):
+            # Find quality in the line
+            quality_found = None
+            for quality in ['480p', '720p', '1080p', '4k', 'hd']:
+                if quality in line.lower():
+                    quality_found = quality.upper()
+                    break
+            
+            if quality_found:
+                formatted_parts.append(f"🎭 **{quality_found}**")
+            
+            # Add the line with link
+            formatted_parts.append(line)
+            formatted_parts.append("")
+    
+    # Add backup channel footer
+    formatted_parts.append("━━━━━━━━━━━━━━━━━")
+    formatted_parts.append("📡 **Backup Channel**")
+    formatted_parts.append("https://t.me/+uCTbb3GPc6AwNTk1")
+    
+    return '\n'.join(formatted_parts)
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
     try:
@@ -186,44 +227,50 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message_text:
         return
     
-    # Try to extract information from the message
-    # This is a simple parser - you can make it more sophisticated
-    lines = message_text.split('\n')
+    # Check if it's a format bypass (contains links)
+    url_pattern = r'https?://[^\s]+'
+    urls = re.findall(url_pattern, message_text)
     
-    # Try to extract title, price, link, description
-    extracted_data = {
-        'title': '',
-        'price': '',
-        'link': '',
-        'description': message_text
-    }
-    
-    # Simple extraction logic
-    for line in lines:
-        line = line.strip()
-        if line.startswith('Title:') or line.startswith('title:'):
-            extracted_data['title'] = line.split(':', 1)[1].strip()
-        elif line.startswith('Price:') or line.startswith('price:'):
-            extracted_data['price'] = line.split(':', 1)[1].strip()
-        elif 'http' in line:
-            # Extract URL
-            url_pattern = r'https?://[^\s]+'
-            urls = re.findall(url_pattern, line)
-            if urls:
-                extracted_data['link'] = urls[0]
-    
-    # If no specific data found, use the message as title
-    if not extracted_data['title'] and not extracted_data['price'] and not extracted_data['link']:
-        extracted_data['title'] = message_text[:100] + ('...' if len(message_text) > 100 else '')
-    
-    # Get current format and apply it
-    current_format = db.get_format()
-    
-    try:
-        formatted_message = current_format.format(**extracted_data)
-    except KeyError as e:
-        # If format contains variables not in extracted_data, use original message
-        formatted_message = message_text
+    if urls:
+        # Auto-format with movie/content template
+        formatted_message = format_movie_links(message_text, urls)
+    else:
+        # Try to extract information from the message
+        lines = message_text.split('\n')
+        
+        # Try to extract title, price, link, description
+        extracted_data = {
+            'title': '',
+            'price': '',
+            'link': '',
+            'description': message_text
+        }
+        
+        # Simple extraction logic
+        for line in lines:
+            line = line.strip()
+            if line.startswith('Title:') or line.startswith('title:'):
+                extracted_data['title'] = line.split(':', 1)[1].strip()
+            elif line.startswith('Price:') or line.startswith('price:'):
+                extracted_data['price'] = line.split(':', 1)[1].strip()
+            elif 'http' in line:
+                # Extract URL
+                urls = re.findall(url_pattern, line)
+                if urls:
+                    extracted_data['link'] = urls[0]
+        
+        # If no specific data found, use the message as title
+        if not extracted_data['title'] and not extracted_data['price'] and not extracted_data['link']:
+            extracted_data['title'] = message_text[:100] + ('...' if len(message_text) > 100 else '')
+        
+        # Get current format and apply it
+        current_format = db.get_format()
+        
+        try:
+            formatted_message = current_format.format(**extracted_data)
+        except KeyError as e:
+            # If format contains variables not in extracted_data, use original message
+            formatted_message = message_text
     
     # Get active channels and post to them
     channels = db.get_channels(active_only=True)
