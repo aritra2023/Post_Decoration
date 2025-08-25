@@ -15,12 +15,22 @@ def format_movie_links(message_text, urls):
     """Format movie links with special template"""
     lines = message_text.split('\n')
     
+    # Clean message - remove hashtags and non-terabox links
+    cleaned_lines = []
+    for line in lines:
+        line = line.strip()
+        # Remove hashtags
+        line = re.sub(r'#\w+', '', line).strip()
+        # Keep only terabox links and text
+        if line and ('terabox' in line.lower() or 'http' not in line):
+            cleaned_lines.append(line)
+    
     # Start building the formatted message
     formatted_parts = []
     
     # Extract title (first line if it doesn't contain links)
-    title_line = lines[0].strip() if lines else ""
-    if title_line and 'http' not in title_line:
+    title_line = cleaned_lines[0].strip() if cleaned_lines else ""
+    if title_line and 'http' not in title_line and not title_line.startswith('𝗧ɪᴛᴛʟᴇ'):
         formatted_parts.append(f"**𝗧ɪᴛᴛʟᴇ :- {title_line}**")
         formatted_parts.append("")
         start_index = 1
@@ -33,49 +43,57 @@ def format_movie_links(message_text, urls):
     
     # Process links
     quality_links = {'480p': [], '720p': [], '1080p': []}
-    other_links = []
+    terabox_links = []
     
-    for line in lines[start_index:]:
+    for line in cleaned_lines[start_index:]:
         line = line.strip()
-        if line and 'http' in line:
-            # Check for quality
-            quality_found = None
-            for quality in ['480p', '720p', '1080p']:
-                if quality in line.lower():
-                    quality_found = quality
-                    break
-            
-            if quality_found:
-                # Extract the link
-                url_pattern = r'https?://[^\s]+'
-                link_match = re.search(url_pattern, line)
-                if link_match:
-                    quality_links[quality_found].append(link_match.group())
-            else:
-                # No quality mentioned, add the whole line
-                other_links.append(line)
+        if line and 'terabox' in line.lower():
+            # Extract terabox link
+            url_pattern = r'https?://[^\s]+'
+            link_match = re.search(url_pattern, line)
+            if link_match:
+                link = link_match.group()
+                
+                # Check for quality
+                quality_found = None
+                for quality in ['480p', '720p', '1080p']:
+                    if quality in line.lower():
+                        quality_found = quality
+                        break
+                
+                if quality_found:
+                    quality_links[quality_found].append(link)
+                else:
+                    terabox_links.append(link)
     
     # Add quality links
+    has_quality = False
     for quality in ['480p', '720p', '1080p']:
         if quality_links[quality]:
             formatted_parts.append(f"**{quality.upper()} - {quality_links[quality][0]}**")
             formatted_parts.append("")
-        elif quality == '1080p':
-            # Default 1080p message if not available
-            formatted_parts.append("**1080P - Available in Direct File Channel**")
-            formatted_parts.append("")
+            has_quality = True
     
-    # Add other links without quality
-    for link_line in other_links:
-        formatted_parts.append(f"**{link_line}**")
+    # Add 1080p default if no 1080p found but other qualities exist
+    if has_quality and not quality_links['1080p']:
+        formatted_parts.append("**1080P - ᴀᴠᴀɪʟᴀʙʟᴇ ɪɴ ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ**")
         formatted_parts.append("")
     
-    # Add footer
-    formatted_parts.append("**▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬**")
-    formatted_parts.append("**ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ ‒ 29ʀꜱ./ᴍᴏɴᴛʜ**")
-    formatted_parts.append("**𝐌ᴀɪɴ Cʜᴀɴɴᴇʟ**")
-    formatted_parts.append("**https://t.me/+uCTbb3GPc6AwNTk1**")
-    formatted_parts.append("**https://t.me/+uCTbb3GPc6AwNTk1**")
+    # Add links without quality
+    if not has_quality and terabox_links:
+        if len(terabox_links) == 1:
+            formatted_parts.append(f"**Lɪɴᴋ - [Download Here]({terabox_links[0]})**")
+            formatted_parts.append("")
+        else:
+            for i, link in enumerate(terabox_links, 1):
+                formatted_parts.append(f"**Pᴀʀᴛ {i} - [Download Part {i}]({link})**")
+                formatted_parts.append("")
+    
+    # Add footer with fancy box
+    formatted_parts.append("**╔.★. .═════════════════════╗**")
+    formatted_parts.append("**      ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ ‒ 29ʀꜱ./ᴍᴏɴᴛʜ**")
+    formatted_parts.append("**      𝐌ᴀɪɴ Cʜᴀɴɴᴇʟ - [𝐌ᴜꜱᴛ 𝐉ᴏɪɴ](https://t.me/+uCTbb3GPc6AwNTk1)**")
+    formatted_parts.append("**╚═════════════════════. .★.╝**")
     
     return '\n'.join(formatted_parts)
 
@@ -233,10 +251,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.info(f"User {user_id} is not admin. Admin ID: {ADMIN_USER_ID}")
         return
     
-    # Get message content
+    # Get message content (text or caption)
     message_text = update.message.text or update.message.caption or ""
     
+    # Check if message has photo
+    has_photo = update.message.photo is not None
+    photo_file_id = update.message.photo[-1].file_id if has_photo else None
+    
     logging.info(f"Message text: {message_text}")
+    logging.info(f"Has photo: {has_photo}")
     
     if not message_text:
         logging.info("No message text found")
@@ -297,7 +320,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not channels:
         # No channels configured - just send formatted message as reply
         logging.info("No channels configured, sending as reply")
-        await update.message.reply_text(formatted_message, parse_mode='Markdown')
+        if has_photo:
+            await update.message.reply_photo(
+                photo=photo_file_id,
+                caption=formatted_message,
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text(formatted_message, parse_mode='Markdown')
         return
     
     success_count = 0
@@ -305,17 +335,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Send to user first (as preview)
     try:
-        await update.message.reply_text(f"📋 **Formatted Preview:**\n\n{formatted_message}", parse_mode='Markdown')
+        if has_photo:
+            await update.message.reply_photo(
+                photo=photo_file_id,
+                caption=f"📋 **Formatted Preview:**\n\n{formatted_message}",
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text(f"📋 **Formatted Preview:**\n\n{formatted_message}", parse_mode='Markdown')
     except Exception as e:
         logging.error(f"Failed to send preview to user: {e}")
     
     for channel_id in channels:
         try:
-            await context.bot.send_message(
-                chat_id=channel_id,
-                text=formatted_message,
-                parse_mode='Markdown'
-            )
+            if has_photo:
+                await context.bot.send_photo(
+                    chat_id=channel_id,
+                    photo=photo_file_id,
+                    caption=formatted_message,
+                    parse_mode='Markdown'
+                )
+            else:
+                await context.bot.send_message(
+                    chat_id=channel_id,
+                    text=formatted_message,
+                    parse_mode='Markdown'
+                )
             success_count += 1
         except Exception as e:
             logging.error(f"Failed to send to channel {channel_id}: {e}")

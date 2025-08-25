@@ -40,9 +40,9 @@ def main():
         application.add_handler(CommandHandler("cancel", cancel_command))
         application.add_handler(CallbackQueryHandler(button_callback))
         
-        # Message handler for auto-posting (should be last)
+        # Message handler for auto-posting (should be last) - handles both text and photos
         application.add_handler(MessageHandler(
-            filters.TEXT & ~filters.COMMAND, 
+            (filters.TEXT | filters.PHOTO) & ~filters.COMMAND, 
             handle_message
         ))
         
