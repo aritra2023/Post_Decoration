@@ -431,26 +431,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.error(f"Failed to send preview to user: {e}")
     
     for channel_id in channels:
-        try:
-            if has_photo and photo_file_id:
-                await context.bot.send_photo(
-                    chat_id=channel_id,
-                    photo=photo_file_id,
-                    caption=formatted_message,
-                    parse_mode='HTML'
-                )
-            else:
-                # For text messages, send with default image
-                await context.bot.send_photo(
-                    chat_id=channel_id,
-                    photo=default_image_url,
-                    caption=formatted_message,
-                    parse_mode='HTML'
-                )
-            success_count += 1
-        except Exception as e:
-            logging.error(f"Failed to send to channel {channel_id}: {e}")
-            failed_channels.append(channel_id)
+        posted_successfully = False
+        last_error = None
+        
+        # Try up to 3 times for each channel
+        for attempt in range(1, 4):  # 3 attempts total
+            try:
+                if has_photo and photo_file_id:
+                    await context.bot.send_photo(
+                        chat_id=channel_id,
+                        photo=photo_file_id,
+                        caption=formatted_message,
+                        parse_mode='HTML'
+                    )
+                else:
+                    # For text messages, send with default image
+                    await context.bot.send_photo(
+                        chat_id=channel_id,
+                        photo=default_image_url,
+                        caption=formatted_message,
+                        parse_mode='HTML'
+                    )
+                
+                # If we reach here, posting was successful
+                posted_successfully = True
+                success_count += 1
+                if attempt > 1:
+                    logging.info(f"Successfully posted to channel {channel_id} on attempt {attempt}")
+                break  # Exit retry loop on success
+                
+            except Exception as e:
+                last_error = e
+                logging.warning(f"Attempt {attempt}/3 failed for channel {channel_id}: {e}")
+                
+                # If this is not the last attempt, wait a bit before retrying
+                if attempt < 3:
+                    await asyncio.sleep(2)  # Wait 2 seconds before retry
+        
+        # If all attempts failed, add to failed channels
+        if not posted_successfully:
+            logging.error(f"Failed to send to channel {channel_id} after 3 attempts. Last error: {last_error}")
+            failed_channels.append(f"{channel_id} (3 attempts failed)")
     
     # Send confirmation to admin
     if success_count > 0:
