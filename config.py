@@ -1,9 +1,9 @@
 import os
 
-# Bot configuration - Direct token for Replit deployment
+# Bot configuration - Direct credentials for smooth operation
 BOT_TOKEN = "8334858851:AAFxltESLhq8qu2Qx1WnMiIVrhsOywCJziw"
-DATABASE_URL = os.getenv("DATABASE_URL")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+MONGO_URI = "mongodb+srv://404movie:404moviepass@cluster0.fca76c9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+GEMINI_API_KEY = "AIzaSyAYBwHPiMIVte903r5OGLX_C2g-TStJ5Tk"
 
 # Admin user ID
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "7342290214"))

@@ -28,3 +28,9 @@ def keep_alive():
         logging.info("Keep alive server started on port 5000")
     except Exception as e:
         logging.error(f"Failed to start keep alive server: {e}")
+
+# Make the app available for gunicorn if run directly
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Starting Flask keep-alive server...")
+    app.run(host='0.0.0.0', port=5000, debug=False)
