@@ -462,25 +462,61 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
             except Exception as e:
                 last_error = e
-                logging.warning(f"Attempt {attempt}/3 failed for channel {channel_id}: {e}")
+                error_msg = str(e)
+                logging.warning(f"Attempt {attempt}/3 failed for channel {channel_id}: {error_msg}")
                 
-                # If this is not the last attempt, wait a bit before retrying
+                # If this is not the last attempt, handle specific errors appropriately
                 if attempt < 3:
-                    await asyncio.sleep(2)  # Wait 2 seconds before retry
+                    wait_time = 2  # Default wait time
+                    
+                    # Handle specific Telegram API errors
+                    if "Flood control exceeded" in error_msg:
+                        # Extract wait time from flood control message
+                        import re
+                        flood_match = re.search(r'Retry in (\d+) seconds', error_msg)
+                        if flood_match:
+                            wait_time = int(flood_match.group(1)) + 1  # Add 1 second buffer
+                            logging.info(f"Flood control detected, waiting {wait_time} seconds for channel {channel_id}")
+                        else:
+                            wait_time = 15  # Default flood control wait time
+                    elif "Timed out" in error_msg:
+                        wait_time = 5  # Longer wait for timeout errors
+                        logging.info(f"Timeout detected, waiting {wait_time} seconds for channel {channel_id}")
+                    elif "Bad Request" in error_msg:
+                        wait_time = 1  # Shorter wait for bad requests
+                    elif "Too Many Requests" in error_msg:
+                        wait_time = 10  # Wait longer for rate limiting
+                    
+                    await asyncio.sleep(wait_time)
         
-        # If all attempts failed, add to failed channels
+        # If all attempts failed, add to failed channels with specific error info
         if not posted_successfully:
-            logging.error(f"Failed to send to channel {channel_id} after 3 attempts. Last error: {last_error}")
-            failed_channels.append(f"{channel_id} (3 attempts failed)")
+            error_msg = str(last_error) if last_error else "Unknown error"
+            logging.error(f"Failed to send to channel {channel_id} after 3 attempts. Last error: {error_msg}")
+            
+            # Categorize the error for better user feedback
+            if "Flood control exceeded" in error_msg:
+                failed_channels.append(f"{channel_id} (Rate limited)")
+            elif "Timed out" in error_msg:
+                failed_channels.append(f"{channel_id} (Connection timeout)")
+            elif "Bad Request" in error_msg or "Chat not found" in error_msg:
+                failed_channels.append(f"{channel_id} (Invalid channel/permissions)")
+            elif "Too Many Requests" in error_msg:
+                failed_channels.append(f"{channel_id} (Too many requests)")
+            else:
+                failed_channels.append(f"{channel_id} (Unknown error)")
     
-    # Send confirmation to admin
+    # Send detailed confirmation to admin
     if success_count > 0:
         result_message = f"✅ Message posted to {success_count} channel(s)"
         if failed_channels:
-            result_message += f"\n❌ Failed to post to: {', '.join(failed_channels)}"
+            result_message += f"\n\n❌ Failed channels after 3 attempts:"
+            for failed in failed_channels:
+                result_message += f"\n• {failed}"
+            result_message += f"\n\n💡 Check channel permissions and try again later for failed channels."
         await update.message.reply_text(result_message)
     else:
-        await update.message.reply_text("❌ Failed to post to any channels. Please check channel permissions.")
+        await update.message.reply_text("❌ Failed to post to any channels after 3 attempts each.\n\n🔍 Common issues:\n• Bot not added to channel\n• No posting permissions\n• Rate limiting\n• Invalid channel ID\n\nCheck your channel settings and try again.")
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle button callbacks"""
