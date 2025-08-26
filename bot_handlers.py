@@ -304,6 +304,78 @@ async def format_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='HTML'
     )
 
+async def autoforward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /autoforward command"""
+    if not update.effective_user or not update.message:
+        return
+        
+    user_id = update.effective_user.id
+    
+    if not is_admin(user_id):
+        await update.message.reply_text("❌ You don't have permission to use this command.")
+        return
+    
+    if not context.args:
+        await update.message.reply_text("❌ Usage: /autoforward on or /autoforward off")
+        return
+    
+    action = context.args[0].lower()
+    
+    if action == "on":
+        # Enable auto forward
+        current_status = db.get_auto_forward_status()
+        if current_status:
+            await update.message.reply_text("✅ Auto Forward is already ON")
+        else:
+            success, message = db.toggle_auto_forward()
+            await update.message.reply_text(f"✅ Auto Forward turned ON")
+    
+    elif action == "off":
+        # Disable auto forward
+        current_status = db.get_auto_forward_status()
+        if not current_status:
+            await update.message.reply_text("✅ Auto Forward is already OFF")
+        else:
+            success, message = db.toggle_auto_forward()
+            await update.message.reply_text(f"✅ Auto Forward turned OFF")
+    
+    else:
+        await update.message.reply_text("❌ Usage: /autoforward on or /autoforward off")
+
+async def forwardstatus_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /forwardstatus command"""
+    if not update.effective_user or not update.message:
+        return
+        
+    user_id = update.effective_user.id
+    
+    if not is_admin(user_id):
+        await update.message.reply_text("❌ You don't have permission to use this command.")
+        return
+    
+    # Get auto forward status
+    auto_status = db.get_auto_forward_status()
+    status_text = "🟢 ON" if auto_status else "🔴 OFF"
+    
+    # Get active channels count
+    channels = db.get_all_channels_with_status()
+    active_count = sum(1 for ch in channels if ch['active'])
+    total_count = len(channels)
+    
+    status_message = f"""📊 <b>Forward Status</b>
+
+🚀 <b>Auto Forward:</b> {status_text}
+📢 <b>Active Channels:</b> {active_count}/{total_count}
+💬 <b>Total Channels:</b> {total_count}
+
+<b>Channel Details:</b>"""
+    
+    for ch in channels:
+        status_icon = "🟢" if ch['active'] else "🔴"
+        status_message += f"\n{status_icon} {ch['channel_name']}"
+    
+    await update.message.reply_text(status_message, parse_mode='HTML')
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle regular messages from admin for auto-posting"""
     if not update.effective_user or not update.message:

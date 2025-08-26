@@ -4,7 +4,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQu
 from bot_handlers import (
     start_command, help_command, add_channel_command, remove_channel_command,
     list_channels_command, format_command, handle_message,
-    button_callback, cancel_command
+    button_callback, cancel_command, autoforward_command, forwardstatus_command
 )
 from config import BOT_TOKEN
 from keep_alive import keep_alive
@@ -42,6 +42,8 @@ def main():
         application.add_handler(CommandHandler("removechannel", remove_channel_command))
         application.add_handler(CommandHandler("listchannels", list_channels_command))
         application.add_handler(CommandHandler("format", format_command))
+        application.add_handler(CommandHandler("autoforward", autoforward_command))
+        application.add_handler(CommandHandler("forwardstatus", forwardstatus_command))
         application.add_handler(CommandHandler("cancel", cancel_command))
         application.add_handler(CallbackQueryHandler(button_callback))
         
