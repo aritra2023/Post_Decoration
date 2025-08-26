@@ -115,19 +115,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = []
         
         if is_admin(user_id):
-            # Get current settings status for direct display
-            auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
-            timer_settings = db.get_schedule_timer()
-            timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-            
             keyboard = [
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
-                [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
-                [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
-                [InlineKeyboardButton("📊 Settings", callback_data="settings")]
+                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("❓ Help", callback_data="help")]
             ]
         else:
-            keyboard = []
+            keyboard = [
+                [InlineKeyboardButton("❓ Help", callback_data="help")]
+            ]
         
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -824,16 +818,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         keyboard = []
         if is_admin(query.from_user.id):
-            # Get current settings status for direct display
-            auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
-            timer_settings = db.get_schedule_timer()
-            timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-            
             keyboard = [
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
-                [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
-                [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
-                [InlineKeyboardButton("📊 Settings", callback_data="settings")]
+                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("❓ Help", callback_data="help")]
+            ]
+        else:
+            keyboard = [
+                [InlineKeyboardButton("❓ Help", callback_data="help")]
             ]
         
         reply_markup = InlineKeyboardMarkup(keyboard)
