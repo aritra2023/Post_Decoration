@@ -472,6 +472,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     data = query.data
     
+    # Debug logging
+    logging.info(f"Button clicked - User: {user_id}, Data: {data}, Is Admin: {is_admin(user_id)}")
+    
     if data == "help":
         await help_command(update, context)
     
@@ -669,7 +672,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(f"❌ {message}")
     
     elif data == "toggle_auto_forward" and is_admin(user_id):
+        logging.info(f"AUTO FORWARD TOGGLE CLICKED by user {user_id}")
         success, message = db.toggle_auto_forward()
+        logging.info(f"Toggle result: {success}, {message}")
         await query.answer(f"✅ {message}" if success else f"❌ {message}")
         # Refresh main menu to show updated status
         user_name = query.from_user.first_name or "User"
