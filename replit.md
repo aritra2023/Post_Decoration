@@ -74,3 +74,5 @@ Preferred communication style: Simple, everyday language.
 - ✅ Settings button made dummy, main features moved to main menu
 - ✅ Channel management with custom names (/addchannel @id [Name])
 - ✅ Toggle buttons show friendly names instead of technical IDs
+- ✅ Auto forward button removed, replaced with reliable command-based controls
+- ✅ Commands implemented: /autoforward on/off, /forwardstatus

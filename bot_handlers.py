@@ -116,13 +116,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if is_admin(user_id):
             # Get current settings status for direct display
-            auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
             timer_settings = db.get_schedule_timer()
             timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
             
             keyboard = [
                 [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
-                [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
                 [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
                 [InlineKeyboardButton("📊 Settings", callback_data="settings")]
             ]
@@ -742,44 +740,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         else:
             await query.answer(f"❌ {message}")
-    
-    elif data == "toggle_auto_forward" and is_admin(user_id):
-        logging.info(f"AUTO FORWARD TOGGLE CLICKED by user {user_id}")
-        success, message = db.toggle_auto_forward()
-        logging.info(f"Toggle result: {success}, {message}")
-        await query.answer(f"✅ {message}" if success else f"❌ {message}")
-        # Refresh main menu to show updated status
-        user_name = query.from_user.first_name or "User"
-        start_message = db.get_start_message().format(user_name)
-        
-        # Get current settings status for direct display
-        auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
-        timer_settings = db.get_schedule_timer()
-        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        
-        keyboard = [
-            [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
-            [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
-            [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
-            [InlineKeyboardButton("📊 Settings", callback_data="settings")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        try:
-            await query.edit_message_caption(
-                caption=start_message,
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception:
-            try:
-                await query.edit_message_text(
-                    start_message,
-                    parse_mode='HTML',
-                    reply_markup=reply_markup
-                )
-            except Exception:
-                pass
     
     elif data == "schedule_menu" and is_admin(user_id):
         timer_settings = db.get_schedule_timer()
