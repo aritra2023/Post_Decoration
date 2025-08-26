@@ -116,11 +116,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if is_admin(user_id):
             keyboard = [
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("❓ Help", callback_data="help")]
+                [InlineKeyboardButton("Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("Help", callback_data="help")]
             ]
         else:
             keyboard = [
-                [InlineKeyboardButton("❓ Help", callback_data="help")]
+                [InlineKeyboardButton("Help", callback_data="help")]
             ]
         
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -675,7 +675,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
         
         keyboard = [
-            [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
+            [InlineKeyboardButton("Manage Channels", callback_data="manage_channels")],
             [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
             [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
             [InlineKeyboardButton("📊 Settings", callback_data="settings")]
@@ -819,11 +819,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = []
         if is_admin(query.from_user.id):
             keyboard = [
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("❓ Help", callback_data="help")]
+                [InlineKeyboardButton("Manage Channels", callback_data="manage_channels"), InlineKeyboardButton("Help", callback_data="help")]
             ]
         else:
             keyboard = [
-                [InlineKeyboardButton("❓ Help", callback_data="help")]
+                [InlineKeyboardButton("Help", callback_data="help")]
             ]
         
         reply_markup = InlineKeyboardMarkup(keyboard)
