@@ -856,3 +856,91 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         await update.message.reply_text("❌ Operation cancelled.")
     return ConversationHandler.END
+
+async def autoforward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /forward on/off command"""
+    if not update.effective_user or not update.message:
+        return
+        
+    user_id = update.effective_user.id
+    
+    if not is_admin(user_id):
+        await update.message.reply_text("❌ You don't have permission to use this command.")
+        return
+    
+    if not context.args:
+        # Show current status if no arguments
+        current_status = "ON" if db.get_auto_forward_status() else "OFF"
+        await update.message.reply_text(
+            f"🚀 <b>Auto Forward Status:</b> {current_status}\n\n"
+            "<b>Usage:</b>\n"
+            "• <code>/forward on</code> - Enable auto forwarding\n"
+            "• <code>/forward off</code> - Disable auto forwarding",
+            parse_mode='HTML'
+        )
+        return
+    
+    command_arg = context.args[0].lower()
+    
+    if command_arg == "on":
+        # Enable auto forward if it's currently disabled
+        current_status = db.get_auto_forward_status()
+        if current_status:
+            await update.message.reply_text("✅ Auto forward is already ON!")
+        else:
+            success, message = db.toggle_auto_forward()
+            if success and "enabled" in message:
+                await update.message.reply_text("✅ Auto forward has been turned ON! 🚀")
+            else:
+                await update.message.reply_text("❌ Failed to enable auto forward.")
+    
+    elif command_arg == "off":
+        # Disable auto forward if it's currently enabled
+        current_status = db.get_auto_forward_status()
+        if not current_status:
+            await update.message.reply_text("✅ Auto forward is already OFF!")
+        else:
+            success, message = db.toggle_auto_forward()
+            if success and "disabled" in message:
+                await update.message.reply_text("✅ Auto forward has been turned OFF! ⏹️")
+            else:
+                await update.message.reply_text("❌ Failed to disable auto forward.")
+    
+    else:
+        await update.message.reply_text(
+            "❌ Invalid option. Use:\n"
+            "• <code>/forward on</code> - Enable auto forwarding\n"
+            "• <code>/forward off</code> - Disable auto forwarding",
+            parse_mode='HTML'
+        )
+
+async def forwardstatus_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /forwardstatus command"""
+    if not update.effective_user or not update.message:
+        return
+        
+    user_id = update.effective_user.id
+    
+    if not is_admin(user_id):
+        await update.message.reply_text("❌ You don't have permission to use this command.")
+        return
+    
+    # Get current auto forward status
+    auto_forward_status = db.get_auto_forward_status()
+    status_text = "🟢 ON" if auto_forward_status else "🔴 OFF"
+    
+    # Get channel count
+    active_channels = len(db.get_channels(active_only=True))
+    total_channels = len(db.get_channels(active_only=False))
+    
+    status_message = (
+        f"📊 <b>Forwarding Status</b>\n\n"
+        f"🚀 <b>Auto Forward:</b> {status_text}\n"
+        f"📢 <b>Active Channels:</b> {active_channels}\n"
+        f"📝 <b>Total Channels:</b> {total_channels}\n\n"
+        f"<b>Quick Controls:</b>\n"
+        f"• <code>/forward on</code> - Enable forwarding\n"
+        f"• <code>/forward off</code> - Disable forwarding"
+    )
+    
+    await update.message.reply_text(status_message, parse_mode='HTML')
