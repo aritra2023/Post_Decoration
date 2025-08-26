@@ -497,8 +497,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=reply_markup
                 )
             except Exception:
-                # Fallback: send new message if editing fails
-                if query.message and hasattr(query.message, 'reply_text'):
+                # Fallback: send new message if editing fails  
+                if query.message and hasattr(query.message, 'reply_text') and query.message.reply_text:
                     await query.message.reply_text(
                         "⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
                         parse_mode='HTML',
@@ -732,8 +732,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=reply_markup
                 )
             except Exception:
-                # Fallback: send new message if editing fails
-                if query.message and hasattr(query.message, 'reply_text'):
+                # Fallback: send new message if editing fails  
+                if query.message and hasattr(query.message, 'reply_text') and query.message.reply_text:
                     await query.message.reply_text(
                         f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
                         parse_mode='HTML',
