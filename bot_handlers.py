@@ -103,7 +103,7 @@ def format_movie_links(message_text, urls):
     return '\n'.join(formatted_parts)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /start command"""
+    """Handle /start command with error handling"""
     try:
         if not update.effective_user or not update.message:
             return
@@ -186,44 +186,49 @@ You can use these variables in your format:
     await update.message.reply_text(help_text, parse_mode='HTML')
 
 async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /addchannel command"""
-    if not update.effective_user or not update.message:
-        return
-        
-    user_id = update.effective_user.id
-    
-    if not is_admin(user_id):
-        await update.message.reply_text("❌ You don't have permission to use this command.")
-        return
-    
-    if not context.args:
-        await update.message.reply_text("❌ Please provide channel ID and name.\nUsage: /addchannel @channel_id [Channel Name]")
-        return
-    
-    # Join all arguments to get the full text
-    full_text = " ".join(context.args)
-    
-    # Check if there's a bracket format
-    if '[' in full_text and ']' in full_text:
-        # Extract channel ID (before bracket) and name (inside bracket)
-        parts = full_text.split('[', 1)
-        channel_id = parts[0].strip()
-        channel_name = parts[1].split(']')[0].strip()
-        
-        # Validate channel ID format
-        if not (channel_id.startswith('@') or channel_id.startswith('-100') or channel_id.lstrip('-').isdigit()):
-            await update.message.reply_text("❌ Invalid channel ID format. Use @channel_username or -100xxxxxxxxx")
+    """Handle /addchannel command with error handling"""
+    try:
+        if not update.effective_user or not update.message:
             return
             
-        success, message = db.add_channel_with_name(channel_id, channel_name)
-    else:
-        await update.message.reply_text("❌ Please use format: /addchannel @channel_id [Channel Name]")
-        return
-    
-    if success:
-        await update.message.reply_text(f"✅ {message}")
-    else:
-        await update.message.reply_text(f"❌ {message}")
+        user_id = update.effective_user.id
+        
+        if not is_admin(user_id):
+            await update.message.reply_text("❌ You don't have permission to use this command.")
+            return
+        
+        if not context.args:
+            await update.message.reply_text("❌ Please provide channel ID and name.\nUsage: /addchannel @channel_id [Channel Name]")
+            return
+        
+        # Join all arguments to get the full text
+        full_text = " ".join(context.args)
+        
+        # Check if there's a bracket format
+        if '[' in full_text and ']' in full_text:
+            # Extract channel ID (before bracket) and name (inside bracket)
+            parts = full_text.split('[', 1)
+            channel_id = parts[0].strip()
+            channel_name = parts[1].split(']')[0].strip()
+            
+            # Validate channel ID format
+            if not (channel_id.startswith('@') or channel_id.startswith('-100') or channel_id.lstrip('-').isdigit()):
+                await update.message.reply_text("❌ Invalid channel ID format. Use @channel_username or -100xxxxxxxxx")
+                return
+                
+            success, message = db.add_channel_with_name(channel_id, channel_name)
+        else:
+            await update.message.reply_text("❌ Please use format: /addchannel @channel_id [Channel Name]")
+            return
+        
+        if success:
+            await update.message.reply_text(f"✅ {message}")
+        else:
+            await update.message.reply_text(f"❌ {message}")
+    except Exception as e:
+        logging.error(f"Error in add_channel_command: {e}")
+        if update and update.message:
+            await update.message.reply_text("❌ An error occurred while adding the channel.")
 
 async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /removechannel command"""
@@ -375,45 +380,46 @@ async def forwardstatus_command(update: Update, context: ContextTypes.DEFAULT_TY
     await update.message.reply_text(status_message, parse_mode='HTML')
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle regular messages from admin for auto-posting"""
-    if not update.effective_user or not update.message:
-        return
+    """Handle incoming messages with comprehensive error handling"""
+    try:
+        if not update.effective_user or not update.message:
+            return
+            
+        user_id = update.effective_user.id
         
-    user_id = update.effective_user.id
-    
-    logging.info(f"Message received from user: {user_id}")
-    
-    if not is_admin(user_id):
-        logging.info(f"User {user_id} is not admin. Admin ID: {ADMIN_USER_ID}")
-        return
-    
-    # Check if auto forward is enabled
-    if not db.get_auto_forward_status():
-        await update.message.reply_text("🚀 Auto forward is currently disabled. Enable it in Settings to auto-post messages.")
-        return
-    
-    # Get message content (text or caption)
-    message_text = update.message.text or update.message.caption or ""
-    
-    # Check if message has photo
-    has_photo = update.message.photo is not None
-    photo_file_id = update.message.photo[-1].file_id if has_photo and update.message.photo else None
-    
-    # Default image URL for text-only messages
-    default_image_url = "https://files.catbox.moe/9i18yn.jpg"
-    
-    logging.info(f"Message text: {message_text}")
-    logging.info(f"Has photo: {has_photo}")
-    
-    if not message_text:
-        logging.info("No message text found")
-        return
-    
-    # Check if it's a format bypass (contains links)
-    url_pattern = r'https?://[^\s]+'
-    urls = re.findall(url_pattern, message_text)
-    
-    logging.info(f"URLs found: {urls}")
+        logging.info(f"Message received from user: {user_id}")
+        
+        if not is_admin(user_id):
+            logging.info(f"User {user_id} is not admin. Admin ID: {ADMIN_USER_ID}")
+            return
+        
+        # Check if auto forward is enabled
+        if not db.get_auto_forward_status():
+            await update.message.reply_text("🚀 Auto forward is currently disabled. Enable it in Settings to auto-post messages.")
+            return
+        
+        # Get message content (text or caption)
+        message_text = update.message.text or update.message.caption or ""
+        
+        # Check if message has photo
+        has_photo = update.message.photo is not None
+        photo_file_id = update.message.photo[-1].file_id if has_photo and update.message.photo else None
+        
+        # Default image URL for text-only messages
+        default_image_url = "https://files.catbox.moe/9i18yn.jpg"
+        
+        logging.info(f"Message text: {message_text}")
+        logging.info(f"Has photo: {has_photo}")
+        
+        if not message_text:
+            logging.info("No message text found")
+            return
+        
+        # Check if it's a format bypass (contains links)
+        url_pattern = r'https?://[^\s]+'
+        urls = re.findall(url_pattern, message_text)
+        
+        logging.info(f"URLs found: {urls}")
     
     if urls:
         # Auto-format with movie/content template
@@ -530,6 +536,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(result_message)
     else:
         await update.message.reply_text("❌ Failed to post to any channels. Please check channel permissions.")
+    except Exception as e:
+        logging.error(f"Error in handle_message: {e}")
+        if update and update.message:
+            try:
+                await update.message.reply_text("❌ An error occurred while processing your message.")
+            except Exception:
+                pass
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle button callbacks"""
