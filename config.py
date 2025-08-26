@@ -1,8 +1,8 @@
 import os
 
-# Bot configuration - Using environment variables for security
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-MONGO_URI = os.getenv("MONGO_URI")
+# Bot configuration - Direct token for Replit deployment
+BOT_TOKEN = "8334858851:AAFxltESLhq8qu2Qx1WnMiIVrhsOywCJziw"
+DATABASE_URL = os.getenv("DATABASE_URL")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Admin user ID

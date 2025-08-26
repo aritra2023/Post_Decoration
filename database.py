@@ -1,54 +1,89 @@
-from pymongo import MongoClient
-from config import MONGO_URI, DB_NAME, CHANNELS_COLLECTION, FORMATS_COLLECTION, SETTINGS_COLLECTION, DEFAULT_FORMAT, DEFAULT_START_MESSAGE, WELCOME_IMAGES
 import logging
+import json
+import os
+from config import DB_NAME, CHANNELS_COLLECTION, FORMATS_COLLECTION, SETTINGS_COLLECTION, DEFAULT_FORMAT, DEFAULT_START_MESSAGE, WELCOME_IMAGES
 
 class Database:
     def __init__(self):
         try:
-            self.client = MongoClient(MONGO_URI)
-            self.db = self.client[DB_NAME]
-            self.channels = self.db[CHANNELS_COLLECTION]
-            self.formats = self.db[FORMATS_COLLECTION]
-            self.settings = self.db[SETTINGS_COLLECTION]
+            # Use simple file-based storage for Replit compatibility
+            self.data_dir = "bot_data"
+            if not os.path.exists(self.data_dir):
+                os.makedirs(self.data_dir)
             
-            # Initialize default values if they don't exist
+            self.channels_file = os.path.join(self.data_dir, "channels.json")
+            self.formats_file = os.path.join(self.data_dir, "formats.json")
+            self.settings_file = os.path.join(self.data_dir, "settings.json")
+            
+            # Initialize files if they don't exist
+            self._init_file(self.channels_file, [])
+            self._init_file(self.formats_file, {"current_format": DEFAULT_FORMAT})
+            self._init_file(self.settings_file, {"start_message": DEFAULT_START_MESSAGE, "auto_forward": True})
+            
+            # Initialize default values
             self.initialize_defaults()
-            logging.info("Database connected successfully")
+            logging.info("File-based database initialized successfully")
         except Exception as e:
-            logging.error(f"Database connection failed: {e}")
-            raise
+            logging.error(f"Database initialization failed: {e}")
+            # Don't raise exception, continue with default values
+    
+    def _init_file(self, filepath, default_data):
+        """Initialize a JSON file with default data if it doesn't exist"""
+        try:
+            if not os.path.exists(filepath):
+                with open(filepath, 'w') as f:
+                    json.dump(default_data, f, indent=2)
+        except Exception as e:
+            logging.error(f"Error initializing file {filepath}: {e}")
+    
+    def _read_file(self, filepath, default_data):
+        """Read data from a JSON file"""
+        try:
+            if os.path.exists(filepath):
+                with open(filepath, 'r') as f:
+                    return json.load(f)
+            return default_data
+        except Exception as e:
+            logging.error(f"Error reading file {filepath}: {e}")
+            return default_data
+    
+    def _write_file(self, filepath, data):
+        """Write data to a JSON file"""
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(data, f, indent=2)
+            return True
+        except Exception as e:
+            logging.error(f"Error writing file {filepath}: {e}")
+            return False
 
     def initialize_defaults(self):
         """Initialize default format and settings if they don't exist"""
         try:
-            # Initialize default format
-            if not self.formats.find_one({"type": "current_format"}):
-                self.formats.insert_one({
-                    "type": "current_format",
-                    "format": DEFAULT_FORMAT
-                })
-            
-            # Initialize default start message
-            if not self.settings.find_one({"type": "start_message"}):
-                self.settings.insert_one({
-                    "type": "start_message",
-                    "message": DEFAULT_START_MESSAGE
-                })
+            # Files are already initialized in __init__
+            logging.info("Defaults initialized successfully")
         except Exception as e:
             logging.error(f"Error initializing defaults: {e}")
 
     def add_channel(self, channel_id):
         """Add a channel to the database"""
         try:
-            # Check if channel already exists
-            if self.channels.find_one({"channel_id": channel_id}):
-                return False, "Channel already exists"
+            channels = self._read_file(self.channels_file, [])
             
-            self.channels.insert_one({
+            # Check if channel already exists
+            for channel in channels:
+                if channel.get("channel_id") == channel_id:
+                    return False, "Channel already exists"
+            
+            channels.append({
                 "channel_id": channel_id,
                 "active": True
             })
-            return True, "Channel added successfully"
+            
+            if self._write_file(self.channels_file, channels):
+                return True, "Channel added successfully"
+            else:
+                return False, "Failed to save channel"
         except Exception as e:
             logging.error(f"Error adding channel: {e}")
             return False, f"Error: {e}"
@@ -56,16 +91,24 @@ class Database:
     def add_channel_with_name(self, channel_id, channel_name):
         """Add a channel with custom name to the database"""
         try:
-            # Check if channel already exists by ID or name
-            if self.channels.find_one({"$or": [{"channel_id": channel_id}, {"channel_name": channel_name}]}):
-                return False, "Channel with this ID or name already exists"
+            channels = self._read_file(self.channels_file, [])
             
-            self.channels.insert_one({
+            # Check if channel already exists by ID or name
+            for channel in channels:
+                if (channel.get("channel_id") == channel_id or 
+                    channel.get("channel_name") == channel_name):
+                    return False, "Channel with this ID or name already exists"
+            
+            channels.append({
                 "channel_id": channel_id,
                 "channel_name": channel_name,
                 "active": True
             })
-            return True, f"Channel '{channel_name}' added successfully"
+            
+            if self._write_file(self.channels_file, channels):
+                return True, f"Channel '{channel_name}' added successfully"
+            else:
+                return False, "Failed to save channel"
         except Exception as e:
             logging.error(f"Error adding channel with name: {e}")
             return False, f"Error: {e}"
@@ -97,10 +140,12 @@ class Database:
     def get_channels(self, active_only=True):
         """Get all channels from the database"""
         try:
-            query = {"active": True} if active_only else {}
-            channels = list(self.channels.find(query))
-            # Return actual channel IDs for posting messages
-            return [channel["channel_id"] for channel in channels]
+            channels = self._read_file(self.channels_file, [])
+            filtered_channels = []
+            for channel in channels:
+                if not active_only or channel.get("active", True):
+                    filtered_channels.append(channel["channel_id"])
+            return filtered_channels
         except Exception as e:
             logging.error(f"Error getting channels: {e}")
             return []
@@ -158,12 +203,12 @@ class Database:
     def set_format(self, format_text):
         """Set the current format"""
         try:
-            self.formats.update_one(
-                {"type": "current_format"},
-                {"$set": {"format": format_text}},
-                upsert=True
-            )
-            return True, "Format updated successfully"
+            formats_data = self._read_file(self.formats_file, {})
+            formats_data["current_format"] = format_text
+            if self._write_file(self.formats_file, formats_data):
+                return True, "Format updated successfully"
+            else:
+                return False, "Failed to save format"
         except Exception as e:
             logging.error(f"Error setting format: {e}")
             return False, f"Error: {e}"
@@ -171,10 +216,8 @@ class Database:
     def get_format(self):
         """Get the current format"""
         try:
-            format_doc = self.formats.find_one({"type": "current_format"})
-            if format_doc:
-                return format_doc["format"]
-            return DEFAULT_FORMAT
+            formats_data = self._read_file(self.formats_file, {"current_format": DEFAULT_FORMAT})
+            return formats_data.get("current_format", DEFAULT_FORMAT)
         except Exception as e:
             logging.error(f"Error getting format: {e}")
             return DEFAULT_FORMAT
