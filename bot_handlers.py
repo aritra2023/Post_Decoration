@@ -1,15 +1,21 @@
 import logging
 import re
+import traceback
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from database import db
 from config import ADMIN_USER_ID, WELCOME_IMAGES
+import asyncio
 
 # Simple state tracking - no conversation handler needed
 
 def is_admin(user_id):
-    """Check if user is admin"""
-    return user_id == ADMIN_USER_ID
+    """Check if user is admin with error handling"""
+    try:
+        return user_id == ADMIN_USER_ID
+    except Exception as e:
+        logging.error(f"Error checking admin status: {e}")
+        return False
 
 def format_movie_links(message_text, urls):
     """Format movie links with special template"""
