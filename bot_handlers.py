@@ -5,108 +5,16 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database import db
 from config import ADMIN_USER_ID, WELCOME_IMAGES
 
-# Simple state tracking - no conversation handler needed
-
 def is_admin(user_id):
     """Check if user is admin"""
     return user_id == ADMIN_USER_ID
-
-def format_movie_links(message_text, urls):
-    """Format movie links with special template"""
-    lines = message_text.split('\n')
-    
-    # Clean message - remove hashtags, non-terabox links, and existing format text
-    cleaned_lines = []
-    for line in lines:
-        line = line.strip()
-        # Remove hashtags
-        line = re.sub(r'#\w+', '', line).strip()
-        # Skip existing format text
-        if ('Wᴀᴛᴄʜ Oɴʟɪɴᴇ' in line or 'Dᴏᴡɴʟᴏᴀᴅ' in line or 
-            'ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ' in line or '═══' in line or
-            '╔' in line or '╚' in line or 'Cʜᴀɴɴᴇʟ' in line):
-            continue
-        # Keep only terabox links and clean text
-        if line and ('terabox' in line.lower() or 'http' not in line):
-            cleaned_lines.append(line)
-    
-    # Start building the formatted message
-    formatted_parts = []
-    
-    # Extract title (first line if it doesn't contain links)
-    title_line = cleaned_lines[0].strip() if cleaned_lines else ""
-    if title_line and 'http' not in title_line:
-        formatted_parts.append(f"<b>{title_line}</b>")
-        formatted_parts.append("")
-        start_index = 1
-    else:
-        start_index = 0
-    
-    # Add Watch/Download header
-    formatted_parts.append("<b>📥Wᴀᴛᴄʜ Oɴʟɪɴᴇ / Dᴏᴡɴʟᴏᴀᴅ</b>")
-    formatted_parts.append("")
-    
-    # Process links
-    quality_links = {'480p': [], '720p': [], '1080p': []}
-    terabox_links = []
-    
-    for line in cleaned_lines[start_index:]:
-        line = line.strip()
-        if line and 'terabox' in line.lower():
-            # Extract terabox link
-            url_pattern = r'https?://[^\s]+'
-            link_match = re.search(url_pattern, line)
-            if link_match:
-                link = link_match.group()
-                
-                # Check for quality
-                quality_found = None
-                for quality in ['480p', '720p', '1080p']:
-                    if quality in line.lower():
-                        quality_found = quality
-                        break
-                
-                if quality_found:
-                    quality_links[quality_found].append(link)
-                else:
-                    terabox_links.append(link)
-    
-    # Add quality links
-    has_quality = False
-    for quality in ['480p', '720p', '1080p']:
-        if quality_links[quality]:
-            formatted_parts.append(f"<b>{quality.upper()} - <a href='{quality_links[quality][0]}'>Download {quality.upper()}</a></b>")
-            formatted_parts.append("")
-            has_quality = True
-    
-    # Add 1080p default if no 1080p found but other qualities exist
-    if has_quality and not quality_links['1080p']:
-        formatted_parts.append("<b>1080P - ᴀᴠᴀɪʟᴀʙʟᴇ ɪɴ ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ</b>")
-        formatted_parts.append("")
-    
-    # Add links without quality
-    if not has_quality and terabox_links:
-        if len(terabox_links) == 1:
-            formatted_parts.append(f"<b>Lɪɴᴋ - <a href='{terabox_links[0]}'>Download Here</a></b>")
-            formatted_parts.append("")
-        else:
-            for i, link in enumerate(terabox_links, 1):
-                formatted_parts.append(f"<b>Pᴀʀᴛ {i} - <a href='{link}'>Download Part {i}</a></b>")
-                formatted_parts.append("")
-    
-    # Add footer with fancy box
-    formatted_parts.append("<b>╔.★. .═════════════════════╗</b>")
-    formatted_parts.append("<b>      ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ ‒ 29ʀꜱ./ᴍᴏɴᴛʜ</b>")
-    formatted_parts.append("<b>      𝐌ᴀɪɴ Cʜᴀɴɴᴇʟ - <a href='https://t.me/+uCTbb3GPc6AwNTk1'>𝐌ᴜꜱᴛ 𝐉ᴏɪɴ</a></b>")
-    formatted_parts.append("<b>╚═════════════════════. .★.╝</b>")
-    
-    return '\n'.join(formatted_parts)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command with error handling"""
     try:
         if not update.effective_user or not update.message:
             return
+            
         user_id = update.effective_user.id
         user_name = update.effective_user.first_name or "User"
         start_message = db.get_start_message().format(user_name)
@@ -115,13 +23,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = []
         
         if is_admin(user_id):
-            # Get current settings status for direct display
-            timer_settings = db.get_schedule_timer()
-            timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-            
             keyboard = [
                 [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
-                [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
+                [InlineKeyboardButton("📝 Set Format", callback_data="set_format")],
                 [InlineKeyboardButton("📊 Settings", callback_data="settings")]
             ]
         else:
@@ -230,155 +134,6 @@ async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         if update and update.message:
             await update.message.reply_text("❌ An error occurred while adding the channel.")
 
-async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /removechannel command"""
-    if not update.effective_user or not update.message:
-        return
-        
-    user_id = update.effective_user.id
-    
-    if not is_admin(user_id):
-        await update.message.reply_text("❌ You don't have permission to use this command.")
-        return
-    
-    if not context.args:
-        await update.message.reply_text("❌ Please provide channel name or ID.\nUsage: /removechannel Channel Name or /removechannel @channel_id")
-        return
-    
-    # Join all arguments to get the input
-    input_text = " ".join(context.args)
-    
-    # Check if input looks like a channel ID
-    if input_text.startswith('@') or input_text.startswith('-100') or input_text.lstrip('-').isdigit():
-        # It's a channel ID
-        success, message = db.remove_channel(input_text)
-    else:
-        # It's a channel name
-        success, message = db.remove_channel_by_name(input_text)
-    
-    if success:
-        await update.message.reply_text(f"✅ {message}")
-    else:
-        await update.message.reply_text(f"❌ {message}")
-
-async def list_channels_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /listchannels command"""
-    if not update.effective_user or not update.message:
-        return
-        
-    user_id = update.effective_user.id
-    
-    if not is_admin(user_id):
-        await update.message.reply_text("❌ You don't have permission to use this command.")
-        return
-    
-    channels = db.get_channels_display(active_only=False)
-    
-    if not channels:
-        await update.message.reply_text("📭 No channels configured.")
-        return
-    
-    channel_list = "📢 <b>Configured Channels:</b>\n\n"
-    for i, channel in enumerate(channels, 1):
-        channel_list += f"{i}. <code>{channel}</code>\n"
-    
-    await update.message.reply_text(channel_list, parse_mode='HTML')
-
-async def format_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /format command"""
-    if not update.effective_user or not update.message:
-        return
-        
-    user_id = update.effective_user.id
-    
-    if not is_admin(user_id):
-        await update.message.reply_text("❌ You don't have permission to use this command.")
-        return
-    
-    current_format = db.get_format()
-    
-    await update.message.reply_text(
-        f"📝 <b>Current Format:</b>\n\n<pre>{current_format}</pre>\n\n"
-        "<b>Available variables:</b>\n"
-        "• {title} - Post title\n"
-        "• {price} - Item price\n"
-        "• {link} - Link URL\n"
-        "• {description} - Description",
-        parse_mode='HTML'
-    )
-
-async def autoforward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /autoforward command"""
-    if not update.effective_user or not update.message:
-        return
-        
-    user_id = update.effective_user.id
-    
-    if not is_admin(user_id):
-        await update.message.reply_text("❌ You don't have permission to use this command.")
-        return
-    
-    if not context.args:
-        await update.message.reply_text("❌ Usage: /autoforward on or /autoforward off")
-        return
-    
-    action = context.args[0].lower()
-    
-    if action == "on":
-        # Enable auto forward
-        current_status = db.get_auto_forward_status()
-        if current_status:
-            await update.message.reply_text("✅ Auto Forward is already ON")
-        else:
-            success, message = db.toggle_auto_forward()
-            await update.message.reply_text(f"✅ Auto Forward turned ON")
-    
-    elif action == "off":
-        # Disable auto forward
-        current_status = db.get_auto_forward_status()
-        if not current_status:
-            await update.message.reply_text("✅ Auto Forward is already OFF")
-        else:
-            success, message = db.toggle_auto_forward()
-            await update.message.reply_text(f"✅ Auto Forward turned OFF")
-    
-    else:
-        await update.message.reply_text("❌ Usage: /autoforward on or /autoforward off")
-
-async def forwardstatus_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /forwardstatus command"""
-    if not update.effective_user or not update.message:
-        return
-        
-    user_id = update.effective_user.id
-    
-    if not is_admin(user_id):
-        await update.message.reply_text("❌ You don't have permission to use this command.")
-        return
-    
-    # Get auto forward status
-    auto_status = db.get_auto_forward_status()
-    status_text = "🟢 ON" if auto_status else "🔴 OFF"
-    
-    # Get active channels count
-    channels = db.get_all_channels_with_status()
-    active_count = sum(1 for ch in channels if ch['active'])
-    total_count = len(channels)
-    
-    status_message = f"""📊 <b>Forward Status</b>
-
-🚀 <b>Auto Forward:</b> {status_text}
-📢 <b>Active Channels:</b> {active_count}/{total_count}
-💬 <b>Total Channels:</b> {total_count}
-
-<b>Channel Details:</b>"""
-    
-    for ch in channels:
-        status_icon = "🟢" if ch['active'] else "🔴"
-        status_message += f"\n{status_icon} {ch['channel_name']}"
-    
-    await update.message.reply_text(status_message, parse_mode='HTML')
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming messages with comprehensive error handling"""
     try:
@@ -420,122 +175,66 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         urls = re.findall(url_pattern, message_text)
         
         logging.info(f"URLs found: {urls}")
-    
-    if urls:
-        # Auto-format with movie/content template
-        logging.info("Applying movie format")
-        formatted_message = format_movie_links(message_text, urls)
-        logging.info(f"Formatted message: {formatted_message}")
-    else:
-        # Try to extract information from the message
-        lines = message_text.split('\n')
         
-        # Try to extract title, price, link, description
-        extracted_data = {
-            'title': '',
-            'price': '',
-            'link': '',
-            'description': message_text
-        }
+        # Just apply basic formatting for now
+        formatted_message = message_text
         
-        # Simple extraction logic
-        for line in lines:
-            line = line.strip()
-            if line.startswith('Title:') or line.startswith('title:'):
-                extracted_data['title'] = line.split(':', 1)[1].strip()
-            elif line.startswith('Price:') or line.startswith('price:'):
-                extracted_data['price'] = line.split(':', 1)[1].strip()
-            elif 'http' in line:
-                # Extract URL
-                urls = re.findall(url_pattern, line)
-                if urls:
-                    extracted_data['link'] = urls[0]
+        # Get active channels and post to them
+        channels = db.get_channels(active_only=True)
         
-        # If no specific data found, use the message as title
-        if not extracted_data['title'] and not extracted_data['price'] and not extracted_data['link']:
-            extracted_data['title'] = message_text[:100] + ('...' if len(message_text) > 100 else '')
-        
-        # Get current format and apply it
-        current_format = db.get_format()
-        
-        try:
-            formatted_message = current_format.format(**extracted_data)
-        except KeyError as e:
-            # If format contains variables not in extracted_data, use original message
-            formatted_message = message_text
-    
-    # Get active channels and post to them
-    channels = db.get_channels(active_only=True)
-    
-    if not channels:
-        # No channels configured - just send formatted message as reply
-        logging.info("No channels configured, sending as reply")
-        if has_photo and photo_file_id:
-            await update.message.reply_photo(
-                photo=photo_file_id,
-                caption=formatted_message,
-                parse_mode='HTML'
-            )
-        else:
-            # For text messages, send with default image
-            await update.message.reply_photo(
-                photo=default_image_url,
-                caption=formatted_message,
-                parse_mode='HTML'
-            )
-        return
-    
-    success_count = 0
-    failed_channels = []
-    
-    # Send to user first (as preview)
-    try:
-        if has_photo and photo_file_id:
-            await update.message.reply_photo(
-                photo=photo_file_id,
-                caption=f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}",
-                parse_mode='HTML'
-            )
-        else:
-            # For text messages, show preview with default image
-            await update.message.reply_photo(
-                photo=default_image_url,
-                caption=f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}",
-                parse_mode='HTML'
-            )
-    except Exception as e:
-        logging.error(f"Failed to send preview to user: {e}")
-    
-    for channel_id in channels:
-        try:
+        if not channels:
+            # No channels configured - just send formatted message as reply
+            logging.info("No channels configured, sending as reply")
             if has_photo and photo_file_id:
-                await context.bot.send_photo(
-                    chat_id=channel_id,
+                await update.message.reply_photo(
                     photo=photo_file_id,
                     caption=formatted_message,
                     parse_mode='HTML'
                 )
             else:
                 # For text messages, send with default image
-                await context.bot.send_photo(
-                    chat_id=channel_id,
+                await update.message.reply_photo(
                     photo=default_image_url,
                     caption=formatted_message,
                     parse_mode='HTML'
                 )
-            success_count += 1
-        except Exception as e:
-            logging.error(f"Failed to send to channel {channel_id}: {e}")
-            failed_channels.append(channel_id)
-    
-    # Send confirmation to admin
-    if success_count > 0:
-        result_message = f"✅ Message posted to {success_count} channel(s)"
-        if failed_channels:
-            result_message += f"\n❌ Failed to post to: {', '.join(failed_channels)}"
-        await update.message.reply_text(result_message)
-    else:
-        await update.message.reply_text("❌ Failed to post to any channels. Please check channel permissions.")
+            return
+        
+        success_count = 0
+        failed_channels = []
+        
+        # Post to all active channels
+        for channel_id in channels:
+            try:
+                if has_photo and photo_file_id:
+                    await context.bot.send_photo(
+                        chat_id=channel_id,
+                        photo=photo_file_id,
+                        caption=formatted_message,
+                        parse_mode='HTML'
+                    )
+                else:
+                    # For text messages, send with default image
+                    await context.bot.send_photo(
+                        chat_id=channel_id,
+                        photo=default_image_url,
+                        caption=formatted_message,
+                        parse_mode='HTML'
+                    )
+                success_count += 1
+            except Exception as e:
+                logging.error(f"Failed to send to channel {channel_id}: {e}")
+                failed_channels.append(channel_id)
+        
+        # Send confirmation to admin
+        if success_count > 0:
+            result_message = f"✅ Message posted to {success_count} channel(s)"
+            if failed_channels:
+                result_message += f"\n❌ Failed to post to: {', '.join(failed_channels)}"
+            await update.message.reply_text(result_message)
+        else:
+            await update.message.reply_text("❌ Failed to post to any channels. Please check channel permissions.")
+            
     except Exception as e:
         logging.error(f"Error in handle_message: {e}")
         if update and update.message:
@@ -546,363 +245,214 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle button callbacks"""
-    query = update.callback_query
-    if not query or not query.from_user:
-        return
-        
-    await query.answer()
-    
-    user_id = query.from_user.id
-    data = query.data
-    
-    # Debug logging
-    logging.info(f"Button clicked - User: {user_id}, Data: {data}, Is Admin: {is_admin(user_id)}")
-    
-    if data == "help":
-        await help_command(update, context)
-    
-    elif data == "settings" and is_admin(user_id):
-        # Dummy settings button - just shows a message
-        keyboard = [
-            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        try:
-            await query.edit_message_text(
-                "⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception:
-            # If it's a photo message, edit the caption instead
-            try:
-                await query.edit_message_caption(
-                    caption="⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
-                    parse_mode='HTML',
-                    reply_markup=reply_markup
-                )
-            except Exception:
-                # Fallback: send new message if editing fails  
-                if query.message and hasattr(query.message, 'reply_text') and query.message.reply_text:
-                    await query.message.reply_text(
-                        "⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
-                        parse_mode='HTML',
-                        reply_markup=reply_markup
-                    )
-    
-    elif data == "manage_channels" and is_admin(user_id):
-        keyboard = [
-            [InlineKeyboardButton("📋 All Channels", callback_data="show_all_channels")],
-            [InlineKeyboardButton("➕ Add Channel", callback_data="add_channel"), InlineKeyboardButton("➖ Remove Channel", callback_data="remove_channel")],
-            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        # Edit the photo caption instead of creating new message
-        try:
-            await query.edit_message_caption(
-                caption="📢 <b>Channel Management</b>\n\nChoose an option:",
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception as e:
-            # Fallback for text messages
-            try:
-                await query.edit_message_text(
-                    "📢 <b>Channel Management</b>\n\nChoose an option:",
-                    parse_mode='HTML',
-                    reply_markup=reply_markup
-                )
-            except Exception:
-                # If both edit methods fail, silently continue
-                pass
-    
-    elif data == "show_all_channels" and is_admin(user_id):
-        channels = db.get_all_channels_with_status()
-        
-        if not channels:
-            try:
-                await query.edit_message_caption(
-                    caption="📭 <b>No channels configured</b>\n\nUse Add Channel option to add channels.",
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-                )
-            except Exception:
-                await query.edit_message_text(
-                    "📭 <b>No channels configured</b>\n\nUse Add Channel option to add channels.",
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-                )
+    try:
+        query = update.callback_query
+        if not query or not query.from_user:
             return
+            
+        await query.answer()
         
-        channel_text = "📢 <b>All Channels</b>\n\nClick to toggle forwarding:\n\n"
-        keyboard = []
+        user_id = query.from_user.id
+        data = query.data
         
-        for channel_data in channels:
-            channel_id = channel_data['channel_id']
-            channel_name = channel_data['channel_name']
-            is_active = channel_data['active']
-            status_icon = "✅" if is_active else "❌"
-            status_text = "Active" if is_active else "Inactive"
-            
-            # Add channel name to text
-            channel_text += f"<code>{channel_name}</code> - {status_text}\n"
-            
-            # Add toggle button for each channel (use display name but toggle by ID)
-            keyboard.append([
-                InlineKeyboardButton(
-                    f"{status_icon} {channel_name}", 
-                    callback_data=f"toggle_{channel_id}"
-                )
-            ])
+        logging.info(f"Button clicked - User: {user_id}, Data: {data}, Is Admin: {is_admin(user_id)}")
         
-        # Add back button
-        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="manage_channels")])
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        if data == "help":
+            await help_command(update, context)
         
-        try:
-            await query.edit_message_caption(
-                caption=channel_text,
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception:
-            await query.edit_message_text(
-                channel_text,
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-    
-    elif data == "add_channel" and is_admin(user_id):
-        try:
-            await query.edit_message_caption(
-                caption="➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_id [Channel Name]</code>\n\nExample:\n<code>/addchannel @mychannel [My Movie Channel]</code>",
-                parse_mode='HTML',
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-            )
-        except Exception:
-            await query.edit_message_text(
-                "➕ <b>Add Channel</b>\n\nUse the command: <code>/addchannel @channel_id [Channel Name]</code>\n\nExample:\n<code>/addchannel @mychannel [My Movie Channel]</code>",
-                parse_mode='HTML',
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-            )
-    
-    elif data == "remove_channel" and is_admin(user_id):
-        try:
-            await query.edit_message_caption(
-                caption="➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel Channel Name</code> or <code>/removechannel @channel_id</code>\n\nExamples:\n<code>/removechannel My Movie Channel</code>\n<code>/removechannel @mychannel</code>",
-                parse_mode='HTML',
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-            )
-        except Exception:
-            await query.edit_message_text(
-                "➖ <b>Remove Channel</b>\n\nUse the command: <code>/removechannel Channel Name</code> or <code>/removechannel @channel_id</code>\n\nExamples:\n<code>/removechannel My Movie Channel</code>\n<code>/removechannel @mychannel</code>",
-                parse_mode='HTML',
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="manage_channels")]])
-            )
-    
-    elif data and data.startswith("toggle_") and is_admin(user_id):
-        channel_id = data.replace("toggle_", "")
-        success, message = db.toggle_channel(channel_id)
-        
-        if success:
-            await query.answer(f"✅ {message}")
-            # Refresh the All Channels view to show updated status
-            channels = db.get_all_channels_with_status()
-            
-            if not channels:
-                return
-            
-            channel_text = "📢 <b>All Channels</b>\n\nClick to toggle forwarding:\n\n"
-            keyboard = []
-            
-            for channel_data in channels:
-                ch_id = channel_data['channel_id']
-                ch_name = channel_data['channel_name']
-                is_active = channel_data['active']
-                status_icon = "✅" if is_active else "❌"
-                status_text = "Active" if is_active else "Inactive"
-                
-                # Add channel name to text
-                channel_text += f"<code>{ch_name}</code> - {status_text}\n"
-                
-                # Add toggle button for each channel (use display name but toggle by ID)
-                keyboard.append([
-                    InlineKeyboardButton(
-                        f"{status_icon} {ch_name}", 
-                        callback_data=f"toggle_{ch_id}"
-                    )
-                ])
-            
-            # Add back button
-            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="manage_channels")])
+        elif data == "settings" and is_admin(user_id):
+            keyboard = [
+                [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]
+            ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             try:
-                await query.edit_message_caption(
-                    caption=channel_text,
-                    parse_mode='HTML',
-                    reply_markup=reply_markup
-                )
-            except Exception:
                 await query.edit_message_text(
-                    channel_text,
-                    parse_mode='HTML',
-                    reply_markup=reply_markup
-                )
-        else:
-            await query.answer(f"❌ {message}")
-    
-    elif data == "schedule_menu" and is_admin(user_id):
-        timer_settings = db.get_schedule_timer()
-        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
-        
-        keyboard = [
-            [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
-            [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
-            [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
-            [InlineKeyboardButton("🔙 Back to Main", callback_data="back_to_main")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        try:
-            await query.edit_message_text(
-                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception:
-            # If it's a photo message, edit the caption instead
-            try:
-                await query.edit_message_caption(
-                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                    "⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
                     parse_mode='HTML',
                     reply_markup=reply_markup
                 )
             except Exception:
-                # Fallback: send new message if editing fails  
-                if query.message and hasattr(query.message, 'reply_text') and query.message.reply_text:
-                    await query.message.reply_text(
-                        f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
+                # If editing fails, try caption edit
+                try:
+                    await query.edit_message_caption(
+                        caption="⚙️ <b>Settings</b>\n\nThis is a dummy settings menu. All main features are available directly from the main menu!",
                         parse_mode='HTML',
                         reply_markup=reply_markup
                     )
-    
-    elif data == "toggle_schedule_timer" and is_admin(user_id):
-        success, message = db.toggle_schedule_timer()
-        await query.answer(f"✅ {message}" if success else f"❌ {message}")
-        # Refresh schedule menu
-        timer_settings = db.get_schedule_timer()
-        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
+                except Exception:
+                    pass
         
-        keyboard = [
-            [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
-            [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
-            [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
-            [InlineKeyboardButton("🔙 Back to Main", callback_data="back_to_main")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        try:
-            await query.edit_message_text(
-                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception:
-            try:
-                await query.edit_message_caption(
-                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
-                    parse_mode='HTML',
-                    reply_markup=reply_markup
-                )
-            except Exception:
-                pass
-    
-    elif data in ["hour_plus", "hour_minus", "minute_plus", "minute_minus"] and is_admin(user_id):
-        timer_settings = db.get_schedule_timer()
-        hours = timer_settings["hours"]
-        minutes = timer_settings["minutes"]
-        
-        if data == "hour_plus":
-            hours = (hours + 1) % 24
-        elif data == "hour_minus":
-            hours = (hours - 1) % 24
-        elif data == "minute_plus":
-            minutes = (minutes + 15) % 60
-        elif data == "minute_minus":
-            minutes = (minutes - 15) % 60
+        elif data == "back_to_main" and is_admin(user_id):
+            await start_command(update, context)
             
-        success, message = db.set_schedule_timer(hours, minutes)
-        await query.answer(f"✅ {message}" if success else f"❌ {message}")
-        # Refresh schedule menu
-        timer_settings = db.get_schedule_timer()
-        timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
-        timer_time = f"{timer_settings['hours']:02d}:{timer_settings['minutes']:02d}"
-        
-        keyboard = [
-            [InlineKeyboardButton(f"🔄 Toggle Timer: {timer_status}", callback_data="toggle_schedule_timer")],
-            [InlineKeyboardButton("🕐 Set Hour +", callback_data="hour_plus"), InlineKeyboardButton("🕐 Set Hour -", callback_data="hour_minus")],
-            [InlineKeyboardButton("🕕 Set Minute +", callback_data="minute_plus"), InlineKeyboardButton("🕕 Set Minute -", callback_data="minute_minus")],
-            [InlineKeyboardButton("🔙 Back to Main", callback_data="back_to_main")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        try:
-            await query.edit_message_text(
-                f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception:
-            try:
-                await query.edit_message_caption(
-                    caption=f"⏰ <b>Schedule Timer Settings</b>\n\nCurrent Time: <code>{timer_time}</code>\nStatus: {timer_status}\n\nThis timer controls when auto-posting is active.",
-                    parse_mode='HTML',
-                    reply_markup=reply_markup
-                )
-            except Exception:
-                pass
-    
-    elif data == "back_to_main":
-        # Edit back to welcome message
-        user_name = query.from_user.first_name or "User"
-        start_message = db.get_start_message().format(user_name)
-        
-        keyboard = []
-        if is_admin(query.from_user.id):
-            # Get current settings status for direct display
-            auto_forward_status = "🟢 ON" if db.get_auto_forward_status() else "🔴 OFF"
-            timer_settings = db.get_schedule_timer()
-            timer_status = "🟢 ON" if timer_settings["enabled"] else "🔴 OFF"
+    except Exception as e:
+        logging.error(f"Error in button_callback: {e}")
+
+async def autoforward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /autoforward command"""
+    try:
+        if not update.effective_user or not update.message:
+            return
             
-            keyboard = [
-                [InlineKeyboardButton("📢 Manage Channels", callback_data="manage_channels")],
-                [InlineKeyboardButton(f"🚀 Auto Forward: {auto_forward_status}", callback_data="toggle_auto_forward")],
-                [InlineKeyboardButton(f"⏰ Schedule Timer: {timer_status}", callback_data="schedule_menu")],
-                [InlineKeyboardButton("📊 Settings", callback_data="settings")]
-            ]
+        user_id = update.effective_user.id
         
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        if not is_admin(user_id):
+            await update.message.reply_text("❌ You don't have permission to use this command.")
+            return
         
-        try:
-            await query.edit_message_caption(
-                caption=start_message,
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
-        except Exception:
-            await query.edit_message_text(
-                start_message,
-                parse_mode='HTML',
-                reply_markup=reply_markup
-            )
+        if not context.args:
+            await update.message.reply_text("❌ Please specify 'on' or 'off'.\nUsage: /autoforward on/off")
+            return
+        
+        command = context.args[0].lower()
+        
+        if command in ['on', 'off']:
+            # Toggle auto forward based on command
+            current_status = db.get_auto_forward_status()
+            new_status = (command == 'on')
+            
+            if current_status != new_status:
+                success, message = db.toggle_auto_forward()
+                if success:
+                    await update.message.reply_text(f"✅ Auto forward {message}")
+                else:
+                    await update.message.reply_text(f"❌ {message}")
+            else:
+                status_text = "enabled" if new_status else "disabled"
+                await update.message.reply_text(f"✅ Auto forward is already {status_text}")
+        else:
+            await update.message.reply_text("❌ Please specify 'on' or 'off'.\nUsage: /autoforward on/off")
+            
+    except Exception as e:
+        logging.error(f"Error in autoforward_command: {e}")
+        if update and update.message:
+            await update.message.reply_text("❌ An error occurred.")
+
+async def forwardstatus_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /forwardstatus command"""
+    try:
+        if not update.effective_user or not update.message:
+            return
+            
+        user_id = update.effective_user.id
+        
+        if not is_admin(user_id):
+            await update.message.reply_text("❌ You don't have permission to use this command.")
+            return
+        
+        # Get current status
+        auto_forward_enabled = db.get_auto_forward_status()
+        status_text = "🟢 Enabled" if auto_forward_enabled else "🔴 Disabled"
+        
+        # Get channel information
+        channels = db.get_all_channels_with_status()
+        active_count = sum(1 for ch in channels if ch['active'])
+        total_count = len(channels)
+        
+        status_message = f"""📊 <b>Forward Status</b>
+
+🚀 <b>Auto Forward:</b> {status_text}
+📢 <b>Active Channels:</b> {active_count}/{total_count}
+💬 <b>Total Channels:</b> {total_count}
+
+<b>Channel Details:</b>"""
+        
+        for ch in channels:
+            status_icon = "🟢" if ch['active'] else "🔴"
+            status_message += f"\n{status_icon} {ch['channel_name']}"
+        
+        await update.message.reply_text(status_message, parse_mode='HTML')
+        
+    except Exception as e:
+        logging.error(f"Error in forwardstatus_command: {e}")
+        if update and update.message:
+            await update.message.reply_text("❌ An error occurred.")
 
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancel current conversation"""
+    """Handle /cancel command"""
     if update.message:
         await update.message.reply_text("❌ Operation cancelled.")
-    return ConversationHandler.END
+
+async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /removechannel command"""
+    try:
+        if not update.effective_user or not update.message:
+            return
+            
+        user_id = update.effective_user.id
+        
+        if not is_admin(user_id):
+            await update.message.reply_text("❌ You don't have permission to use this command.")
+            return
+        
+        if not context.args:
+            await update.message.reply_text("❌ Please provide channel name or ID.\nUsage: /removechannel Channel Name or /removechannel @channel_id")
+            return
+        
+        # Join all arguments to get the input
+        input_text = " ".join(context.args)
+        
+        # Check if input looks like a channel ID
+        if input_text.startswith('@') or input_text.startswith('-100') or input_text.lstrip('-').isdigit():
+            # It's a channel ID
+            success, message = db.remove_channel(input_text)
+        else:
+            # It's a channel name
+            success, message = db.remove_channel_by_name(input_text)
+        
+        if success:
+            await update.message.reply_text(f"✅ {message}")
+        else:
+            await update.message.reply_text(f"❌ {message}")
+            
+    except Exception as e:
+        logging.error(f"Error in remove_channel_command: {e}")
+        if update and update.message:
+            await update.message.reply_text("❌ An error occurred.")
+
+async def list_channels_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /listchannels command"""
+    try:
+        if not update.effective_user or not update.message:
+            return
+            
+        user_id = update.effective_user.id
+        
+        if not is_admin(user_id):
+            await update.message.reply_text("❌ You don't have permission to use this command.")
+            return
+        
+        channels = db.get_channels_display(active_only=False)
+        
+        if not channels:
+            await update.message.reply_text("📭 No channels configured.")
+            return
+        
+        channel_list = "\n".join([f"• {channel}" for channel in channels])
+        await update.message.reply_text(f"📢 <b>Configured Channels:</b>\n\n{channel_list}", parse_mode='HTML')
+        
+    except Exception as e:
+        logging.error(f"Error in list_channels_command: {e}")
+        if update and update.message:
+            await update.message.reply_text("❌ An error occurred.")
+
+async def format_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /format command"""
+    try:
+        if not update.effective_user or not update.message:
+            return
+            
+        user_id = update.effective_user.id
+        
+        if not is_admin(user_id):
+            await update.message.reply_text("❌ You don't have permission to use this command.")
+            return
+        
+        current_format = db.get_format()
+        await update.message.reply_text(f"📝 <b>Current Format:</b>\n\n<code>{current_format}</code>", parse_mode='HTML')
+        
+    except Exception as e:
+        logging.error(f"Error in format_command: {e}")
+        if update and update.message:
+            await update.message.reply_text("❌ An error occurred.")
