@@ -39,12 +39,29 @@ def format_movie_links(message_text, urls):
     # Start building the formatted message
     formatted_parts = []
     
-    # Extract title (first line if it doesn't contain links)
+    # Extract title (first line) - clean up extra text and extract links if present
     title_line = cleaned_lines[0].strip() if cleaned_lines else ""
-    if title_line and 'http' not in title_line:
-        formatted_parts.append(f"<b>{title_line}</b>")
-        formatted_parts.append("")
-        start_index = 1
+    start_index = 1
+    
+    if title_line:
+        # If title has links, extract them and use clean title
+        if 'http' in title_line:
+            # Extract links from title line
+            title_urls = re.findall(r'https?://[^\s]+', title_line)
+            # Clean title by removing URLs and extra text
+            clean_title = re.sub(r'https?://[^\s]+', '', title_line).strip()
+            clean_title = re.sub(r'[^\w\s\-\.\(\)\[\]]', '', clean_title).strip()
+            
+            # Add cleaned title if it's meaningful
+            if clean_title and len(clean_title) > 3:
+                formatted_parts.append(f"<b>{clean_title}</b>")
+                formatted_parts.append("")
+        else:
+            # Clean title text - remove extra characters and symbols
+            clean_title = re.sub(r'[^\w\s\-\.\(\)\[\]]', '', title_line).strip()
+            if clean_title and len(clean_title) > 3:
+                formatted_parts.append(f"<b>{clean_title}</b>")
+                formatted_parts.append("")
     else:
         start_index = 0
     
