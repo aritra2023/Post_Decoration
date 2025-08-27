@@ -476,7 +476,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Handle specific Telegram API errors
                     if "Flood control exceeded" in error_msg:
                         # Extract wait time from flood control message
-                        import re
                         flood_match = re.search(r'Retry in (\d+) seconds', error_msg)
                         if flood_match:
                             wait_time = int(flood_match.group(1)) + 3  # Add 3 second buffer for safety
