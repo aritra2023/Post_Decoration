@@ -40,8 +40,8 @@ def format_movie_links(message_text, urls):
             '━━━' in line or '───' in line or '▬▬▬' in line or
             'ꜱᴇʀɪᴇꜱ' in line.lower() or 'ᴇᴘɪꜱᴏᴅᴇ' in line.lower()):
             continue
-        # Keep only terabox links and clean text
-        if line and ('terabox' in line.lower() or 'http' not in line):
+        # Keep terabox links, preview links, and clean text
+        if line and ('terabox' in line.lower() or 'preview' in line.lower() or 'http' not in line):
             cleaned_lines.append(line)
     
     # Start building the formatted message
@@ -92,27 +92,32 @@ def format_movie_links(message_text, urls):
     # Process links
     quality_links = {'480p': [], '720p': [], '1080p': []}
     terabox_links = []
+    preview_links = []
     
     for line in cleaned_lines[start_index:]:
         line = line.strip()
-        if line and 'terabox' in line.lower():
-            # Extract terabox link
+        if line and ('terabox' in line.lower() or 'preview' in line.lower()):
+            # Extract link from line
             url_pattern = r'https?://[^\s]+'
             link_match = re.search(url_pattern, line)
             if link_match:
                 link = link_match.group()
                 
-                # Check for quality
-                quality_found = None
-                for quality in ['480p', '720p', '1080p']:
-                    if quality in line.lower():
-                        quality_found = quality
-                        break
-                
-                if quality_found:
-                    quality_links[quality_found].append(link)
-                else:
-                    terabox_links.append(link)
+                # Check if it's a preview link
+                if 'preview' in line.lower():
+                    preview_links.append(link)
+                elif 'terabox' in line.lower():
+                    # Check for quality in terabox links
+                    quality_found = None
+                    for quality in ['480p', '720p', '1080p']:
+                        if quality in line.lower():
+                            quality_found = quality
+                            break
+                    
+                    if quality_found:
+                        quality_links[quality_found].append(link)
+                    else:
+                        terabox_links.append(link)
     
     # Add quality links
     has_quality = False
@@ -126,6 +131,15 @@ def format_movie_links(message_text, urls):
     if has_quality and not quality_links['1080p']:
         formatted_parts.append("<b>1080P - ᴀᴠᴀɪʟᴀʙʟᴇ ɪɴ ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ</b>")
         formatted_parts.append("")
+    
+    # Add preview links first if available
+    if preview_links:
+        for i, link in enumerate(preview_links, 1):
+            if len(preview_links) == 1:
+                formatted_parts.append(f"<b>Pʀᴇᴠɪᴇᴡ - <a href='{link}'>Watch Preview</a></b>")
+            else:
+                formatted_parts.append(f"<b>Pʀᴇᴠɪᴇᴡ {i} - <a href='{link}'>Watch Preview {i}</a></b>")
+            formatted_parts.append("")
     
     # Add links without quality
     if not has_quality and terabox_links:
