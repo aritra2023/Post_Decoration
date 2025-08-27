@@ -27,10 +27,18 @@ def format_movie_links(message_text, urls):
         line = line.strip()
         # Remove hashtags
         line = re.sub(r'#\w+', '', line).strip()
-        # Skip existing format text
+        # Remove all extra symbols and decorative text
+        line = re.sub(r'[🎬🎭🎪🎨🎯🎲🎰🎸🎺🎻🎤🎧🎵🎶🎼🎹🎺🎸]', '', line)
+        line = re.sub(r'[⭐️✨💫⚡️🔥💥🌟💯🎉🎊🎈]', '', line)
+        line = re.sub(r'[➤➡️▶️◀️⬅️↗️↘️⬆️⬇️]', '', line)
+        line = re.sub(r'[📱💻🖥️📺📹📷📸🎥🎞️]', '', line)
+        # Skip existing format text and decorative elements
         if ('Wᴀᴛᴄʜ Oɴʟɪɴᴇ' in line or 'Dᴏᴡɴʟᴏᴀᴅ' in line or 
             'ᴅɪʀᴇᴄᴛ ꜰɪʟᴇ ᴄʜᴀɴɴᴇʟ' in line or '═══' in line or
-            '╔' in line or '╚' in line or 'Cʜᴀɴɴᴇʟ' in line):
+            '╔' in line or '╚' in line or 'Cʜᴀɴɴᴇʟ' in line or
+            'ᴍᴏᴠɪᴇ' in line.lower() or 'ꜰɪʟᴍ' in line.lower() or
+            '━━━' in line or '───' in line or '▬▬▬' in line or
+            'ꜱᴇʀɪᴇꜱ' in line.lower() or 'ᴇᴘɪꜱᴏᴅᴇ' in line.lower()):
             continue
         # Keep only terabox links and clean text
         if line and ('terabox' in line.lower() or 'http' not in line):
@@ -44,24 +52,36 @@ def format_movie_links(message_text, urls):
     start_index = 1
     
     if title_line:
-        # If title has links, extract them and use clean title
-        if 'http' in title_line:
-            # Extract links from title line
-            title_urls = re.findall(r'https?://[^\s]+', title_line)
-            # Clean title by removing URLs and extra text
-            clean_title = re.sub(r'https?://[^\s]+', '', title_line).strip()
-            clean_title = re.sub(r'[^\w\s\-\.\(\)\[\]]', '', clean_title).strip()
-            
-            # Add cleaned title if it's meaningful
-            if clean_title and len(clean_title) > 3:
-                formatted_parts.append(f"<b>{clean_title}</b>")
-                formatted_parts.append("")
-        else:
-            # Clean title text - remove extra characters and symbols
-            clean_title = re.sub(r'[^\w\s\-\.\(\)\[\]]', '', title_line).strip()
-            if clean_title and len(clean_title) > 3:
-                formatted_parts.append(f"<b>{clean_title}</b>")
-                formatted_parts.append("")
+        # Clean title aggressively - remove all extra text
+        clean_title = title_line
+        
+        # Remove URLs first
+        clean_title = re.sub(r'https?://[^\s]+', '', clean_title)
+        
+        # Remove common prefixes and suffixes
+        clean_title = re.sub(r'(?i)(movie|film|series|episode|ep|season|s\d+|e\d+)', '', clean_title)
+        clean_title = re.sub(r'(?i)(hindi|english|dubbed|dual audio)', '', clean_title)
+        clean_title = re.sub(r'(?i)(480p|720p|1080p|4k|hd|full hd)', '', clean_title)
+        clean_title = re.sub(r'(?i)(webrip|hdcam|dvdrip|bluray|web-dl)', '', clean_title)
+        clean_title = re.sub(r'(?i)(download|watch|online|free)', '', clean_title)
+        
+        # Remove years in brackets
+        clean_title = re.sub(r'\(\d{4}\)', '', clean_title)
+        clean_title = re.sub(r'\[\d{4}\]', '', clean_title)
+        
+        # Remove file sizes
+        clean_title = re.sub(r'\d+(\.\d+)?\s*(gb|mb|kb)', '', clean_title, flags=re.IGNORECASE)
+        
+        # Remove special characters except basic ones
+        clean_title = re.sub(r'[^\w\s\-\.]', '', clean_title)
+        
+        # Clean up multiple spaces
+        clean_title = re.sub(r'\s+', ' ', clean_title).strip()
+        
+        # Only add if meaningful title remains
+        if clean_title and len(clean_title) > 5:
+            formatted_parts.append(f"<b>{clean_title}</b>")
+            formatted_parts.append("")
     else:
         start_index = 0
     
