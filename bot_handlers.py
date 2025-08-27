@@ -417,20 +417,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if has_photo and photo_file_id:
             await update.message.reply_photo(
                 photo=photo_file_id,
-                caption=f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}",
+                caption=formatted_message,
                 parse_mode='HTML'
             )
         else:
             # For text messages, show preview with default image
             await update.message.reply_photo(
                 photo=default_image_url,
-                caption=f"📋 <b>Formatted Preview:</b>\n\n{formatted_message}",
+                caption=formatted_message,
                 parse_mode='HTML'
             )
     except Exception as e:
         logging.error(f"Failed to send preview to user: {e}")
     
-    for channel_id in channels:
+    # Add delay between channels to avoid overwhelming Telegram
+    for i, channel_id in enumerate(channels):
+        if i > 0:  # Add delay between channels (except first one)
+            await asyncio.sleep(1)  # 1 second between channels
+            
         posted_successfully = False
         last_error = None
         
@@ -475,10 +479,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         import re
                         flood_match = re.search(r'Retry in (\d+) seconds', error_msg)
                         if flood_match:
-                            wait_time = int(flood_match.group(1)) + 1  # Add 1 second buffer
+                            wait_time = int(flood_match.group(1)) + 3  # Add 3 second buffer for safety
                             logging.info(f"Flood control detected, waiting {wait_time} seconds for channel {channel_id}")
                         else:
-                            wait_time = 15  # Default flood control wait time
+                            wait_time = 30  # Longer default flood control wait time
                     elif "Timed out" in error_msg:
                         wait_time = 5  # Longer wait for timeout errors
                         logging.info(f"Timeout detected, waiting {wait_time} seconds for channel {channel_id}")
@@ -496,15 +500,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Categorize the error for better user feedback
             if "Flood control exceeded" in error_msg:
-                failed_channels.append(f"{channel_id} (Rate limited)")
+                failed_channels.append(f"{channel_id} (Rate limited - try again later)")
             elif "Timed out" in error_msg:
                 failed_channels.append(f"{channel_id} (Connection timeout)")
             elif "Bad Request" in error_msg or "Chat not found" in error_msg:
                 failed_channels.append(f"{channel_id} (Invalid channel/permissions)")
             elif "Too Many Requests" in error_msg:
-                failed_channels.append(f"{channel_id} (Too many requests)")
+                failed_channels.append(f"{channel_id} (API rate limit)")
             else:
                 failed_channels.append(f"{channel_id} (Unknown error)")
+            
+            # Add longer delay after failed channel to avoid further rate limiting
+            if i < len(channels) - 1:  # Not the last channel
+                await asyncio.sleep(3)  # 3 second delay after failed channel
     
     # Send detailed confirmation to admin
     if success_count > 0:
